@@ -42,7 +42,7 @@
   #stage .hint{ position:absolute; bottom:10px; left:0; right:0; text-align:center; color:#c7d2e4; opacity:.8; font-size:12px; }
   #btnSkipAll{ position:absolute; top:10px; right:10px; z-index:5; display:none; font-size:12px; }
 
-  /* UR演出（単発/すべてめくる用） */
+  /* 旧UR演出（未使用だが残置） */
   .beam{ position:absolute; inset:-20% 35% -40% 35%; opacity:0; pointer-events:none;
          background: linear-gradient(180deg, rgba(255,255,255,.0) 0%, rgba(255,255,255,.85) 40%, rgba(255,255,255,.0) 100%),
                      repeating-linear-gradient( to bottom,
@@ -51,18 +51,14 @@
                        rgba(0,220,255,.35) 16px, rgba(0,220,255,.35) 24px,
                        rgba(0,230,174,.35) 24px, rgba(0,230,174,.35) 32px);
          filter: blur(2px); mix-blend-mode: screen; transform: scaleY(0.3); }
-  .beam.show{ animation: beamRise .8s ease-out forwards; }
-  @keyframes beamRise{ 0%{opacity:0; transform:scaleY(0.3)} 60%{opacity:1} 100%{opacity:1; transform:scaleY(1)} }
-
+  .beam.show{ display:none !important; }
   .rays{ position:absolute; inset:-20% -20%; opacity:0; pointer-events:none;
          background: conic-gradient(from 0deg,
            rgba(255,216,112,.0) 0deg, rgba(255,216,112,.7) 6deg, rgba(255,216,112,.0) 12deg,
            rgba(0,227,174,.0) 12deg, rgba(0,227,174,.7) 18deg, rgba(0,227,174,.0) 24deg,
            rgba(0,212,255,.0) 24deg, rgba(0,212,255,.7) 30deg, rgba(0,212,255,.0) 36deg);
          mix-blend-mode: screen; filter: blur(1px); }
-  .rays.show{ animation: raysSpin 1.6s linear infinite, raysFade .25s ease-out forwards; }
-  @keyframes raysSpin{ to{ transform: rotate(360deg); } }
-  @keyframes raysFade{ from{opacity:0} to{opacity:.9} }
+  .rays.show{ display:none !important; }
 
   /* カード（3Dめくり） */
   .card{ width:min(280px,70vw); height:min(180px,45vw); perspective: 1000px; }
@@ -75,7 +71,6 @@
   .art{ display:grid; place-items:center; }
   .icon{ font-size:42px; }
   .name{ position:relative; text-align:center; font-size:12px; color:#d5dfef; padding:8px; border-top:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  /* ▼名前の自動マルキー用 */
   .name.marquee{ overflow:hidden; }
   .name .track{ display:inline-block; will-change: transform; }
   .name .scroll{ display:inline-block; padding-right:28px; }
@@ -90,9 +85,10 @@
   .glow{ position:absolute; inset:-2px; border-radius:16px; pointer-events:none; mix-blend-mode:screen; opacity:.85; }
   .R  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(86,204,242,.30), transparent 60%); }
   .SR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(193,168,255,.38), transparent 60%); }
-  .SSR.glowPulse, .UR.glowPulse { animation: glow 1.8s ease-in-out infinite; }
+  .SSR.glowPulse, .UR.glowPulse, .EX.glowPulse { animation: glow 1.8s ease-in-out infinite; }
   .SSR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(255,216,112,.45), transparent 60%); }
-  .UR  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(0,227,174,.55), transparent 60%); }
+  .UR  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(0,227,174,.65), transparent 60%); }
+  .EX  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(255,64,96,.55), transparent 60%); }
   @keyframes glow{ 0%,100%{opacity:.7} 50%{opacity:1} }
 
   /* 特殊演出（表にする前） */
@@ -101,6 +97,37 @@
   @keyframes flash{ from{opacity:0} to{opacity:1} }
   #shakeHost.shake{ animation:shake .6s cubic-bezier(.36,.07,.19,.97) both }
   @keyframes shake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(2px,0,0)}30%,50%,70%{transform:translate3d(-4px,0,0)}40%,60%{transform:translate3d(4px,0,0)}}
+
+  /* ▼UR/EX フリーズ演出（画面全体） */
+  .freezeOverlay{
+    position:fixed; inset:0; z-index:20; pointer-events:none; opacity:0;
+  }
+  .freezeWhite{ background:#fff; }
+  .freezeScan{
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,.0) 0px,
+        rgba(0,0,0,.0) 2px,
+        rgba(0,0,0,.06) 3px,
+        rgba(0,0,0,.06) 4px
+      );
+    mix-blend-mode: multiply;
+  }
+  .freezeChromatic{
+    background:
+      radial-gradient(1200px 800px at 50% 40%,
+        rgba(255,255,255,.0) 0%, rgba(255,255,255,.0) 55%,
+        rgba(255,0,120,.18) 70%, rgba(0,220,255,.18) 82%,
+        rgba(255,255,255,.0) 100%);
+    mix-blend-mode: screen; filter: blur(2px);
+  }
+  @keyframes whiteHold { 0%{opacity:0} 12%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+  @keyframes scanPulse { 0%{opacity:0} 15%{opacity:.8} 70%{opacity:.8} 100%{opacity:0} }
+  @keyframes chromaPulse{ 0%{opacity:0} 20%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+  @media (prefers-reduced-motion: reduce){
+    .freezeOverlay{ display:none; }
+  }
 
   /* 最終結果カード（保存対象） */
   #resultCard{ margin-top:16px; background: var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.26); }
@@ -116,8 +143,9 @@
   .SR .rarityBar{ background: linear-gradient(90deg,#a18cd1,#fbc2eb); }
   .SSR .rarityBar{ background: linear-gradient(90deg,#ffd76f,#ff8a00); box-shadow:0 0 16px rgba(255,200,64,.6); }
   .UR .rarityBar{ background: linear-gradient(90deg,#9be15d,#00e3ae); box-shadow:0 0 18px rgba(0,227,174,.7); }
+  .EX .rarityBar{ background: linear-gradient(90deg,#ff4d6d,#ff8a00); box-shadow:0 0 18px rgba(255,64,96,.65); }
 
-  /* ▼URカード用：常時キラ粒Canvas */
+  /* ▼UR/EXカード用：常時キラ粒Canvas */
   .sparkle { position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.95; }
 
   /* 枠外の操作エリア */
@@ -125,13 +153,20 @@
   .postActions .toolbar{ margin-top:10px; }
   .note{ color:#9fb1c8; font-size:12px; margin:6px 0 0; }
 
+  /* ▼EXが1枚でもある回は結果カード赤モード */
+  #resultCard.exMode{
+    background: linear-gradient(180deg, rgba(255,80,112,.14), rgba(255,80,112,.06));
+    border-color: rgba(255,120,140,.28);
+    box-shadow: 0 12px 40px rgba(255,64,96,.22) inset, 0 8px 26px rgba(255,64,96,.28);
+  }
+
   /* モーダル（排出確率） */
   .modal{ position:fixed; inset:0; display:none; place-items:center; background: rgba(0,0,0,.55); z-index:10; }
   .modal.show{ display:grid; }
   .sheet{
     width:min(760px, 94vw);
-    max-height: 85vh;                /* ← 画面に収める */
-    overflow:auto;                    /* ← 中でスクロール */
+    max-height: 85vh;
+    overflow:auto;
     background:#0f1424; border:1px solid var(--border);
     border-radius:12px; padding:14px;
     box-shadow: 0 20px 80px rgba(0,0,0,.6);
@@ -142,7 +177,7 @@
   @media (max-width:640px){ .rates{ grid-template-columns: 1fr; } }
   .rates table{ width:100%; border-collapse:collapse; background:#0b0f1b; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
   .rates th, .rates td{ padding:8px; border-bottom:1px solid rgba(255,255,255,.06); text-align:left; }
-  .rates th{ background:#131a2b; position: sticky; top: 0; z-index: 1; } /* ← ヘッダー固定 */
+  .rates th{ background:#131a2b; position: sticky; top: 0; z-index: 1; }
 </style>
 <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -160,10 +195,15 @@
 
 <main style="width:var(--w); margin:auto;">
   <div id="stage" aria-label="演出ステージ">
-    <!-- UR演出パーツ -->
+    <!-- （旧）UR演出パーツ（互換のため残置） -->
     <div class="beam" id="beam"></div>
     <div class="rays" id="rays"></div>
     <canvas id="spark" style="position:absolute;inset:0;pointer-events:none"></canvas>
+
+    <!-- 新：フリーズ演出オーバーレイ -->
+    <div class="freezeOverlay freezeWhite" id="freezeWhite"></div>
+    <div class="freezeOverlay freezeScan"  id="freezeScan"></div>
+    <div class="freezeOverlay freezeChromatic" id="freezeChroma"></div>
 
     <div id="stageHost"></div>
     <button id="btnSkipAll" class="btn">すべてめくる</button>
@@ -210,13 +250,15 @@
 </div>
 
 <script>
-/* ---- ラインナップ＆確率（あなた版） ---- */
+/* ---- ラインナップ＆確率（EX追加・UR調整） ---- */
 const RARITY = {
-  "R":   { rate: 0.52, color:"#56ccf2", name:"R" },
-  "SR":  { rate: 0.35, color:"#c1a8ff", name:"SR" },
-  "SSR": { rate: 0.10, color:"#ffd870", name:"SSR" },
-  "UR":  { rate: 0.03, color:"#00e3ae", name:"UR" }
-};
+  "R":   { rate: 0.52,  color:"#56ccf2", name:"R" },
+  "SR":  { rate: 0.35,  color:"#c1a8ff", name:"SR" },
+  "SSR": { rate: 0.10,  color:"#ffd870", name:"SSR" },
+  "UR":  { rate: 0.025, color:"#00e3ae", name:"UR" },   // 2.5%
+  "EX":  { rate: 0.005, color:"#ff4060", name:"EX" }    // 0.5%
+}; // 合計 = 1.0
+
 const POOL = [
   { name:"メガネ", rarity:"R",   icon:"👓" },
   { name:"バナナ", rarity:"R",   icon:"🍌" },
@@ -239,7 +281,9 @@ const POOL = [
   { name:"大石昌良", rarity:"SSR", icon:"🌟" },
 
   { name:"オーイシマサヨシ", rarity:"UR", icon:"🧑‍🎤" },
-  { name:"義務わらのマサヨシ", rarity:"UR", icon:"👑" },
+
+  /* ★ EX（0.5%）：義務わらのマサヨシ */
+  { name:"義務わらのマサヨシ", rarity:"EX", icon:"👑" },
 ];
 
 /* ---- 汎用 ---- */
@@ -250,7 +294,7 @@ const pickWeighted = (arr, key="weight")=>{
   return arr.at(-1);
 };
 const now = ()=> new Date().toLocaleString("ja-JP");
-const rankOrder = ["R","SR","SSR","UR"];
+const rankOrder = ["R","SR","SSR","UR","EX"];
 const rankIdx = r => rankOrder.indexOf(r);
 
 /* ---- 抽選 ---- */
@@ -275,6 +319,11 @@ const spark = document.getElementById("spark");
 const spctx = spark.getContext("2d");
 function resizeSpark(){ spark.width = spark.clientWidth; spark.height = spark.clientHeight; }
 addEventListener("resize", resizeSpark); resizeSpark();
+
+/* フリーズ演出レイヤ参照 */
+const freezeWhite = document.getElementById("freezeWhite");
+const freezeScan  = document.getElementById("freezeScan");
+const freezeChroma= document.getElementById("freezeChroma");
 
 let queue = [], pointer = 0, phase = "idle", lockTap = false, inProgress = false;
 let currentItem = null, currentCard = null, lastResults = [];
@@ -302,27 +351,32 @@ function createCard(item){
   return card;
 }
 
-/* ---- ステージ演出（UR/SSR） ---- */
-function flashShake(){
+/* ---- 演出 ---- */
+function flashShake(stronger=false){
   flash.classList.add("show");
+  shakeHost.style.transformOrigin = "50% 40%";
   shakeHost.classList.add("shake");
+  shakeHost.style.animationDuration = stronger ? ".8s" : ".6s";
   setTimeout(()=>flash.classList.remove("show"), 220);
-  setTimeout(()=>shakeHost.classList.remove("shake"), 620);
+  setTimeout(()=>{
+    shakeHost.classList.remove("shake");
+    shakeHost.style.animationDuration = "";
+  }, stronger ? 820 : 620);
 }
-function urMegaFX(){
-  beam.classList.add("show");
-  rays.classList.add("show");
-  const N = 180;
-  const cx = spark.width/2, cy = spark.height*0.48;
+
+/* 紙吹雪（sparkキャンバスで派手に） */
+function confettiBurst(){
+  const N = 260;
+  const cx = spark.width/2, cy = spark.height*0.46;
   const parts = [];
   for(let i=0;i<N;i++){
     parts.push({
       x: cx, y: cy,
-      vx: (Math.random()*2-1) * (3+Math.random()*4),
-      vy: (Math.random()*2-1) * (3+Math.random()*4) - 2,
-      life: 50 + Math.random()*40,
-      size: 1.5 + Math.random()*2.5,
-      color: ["#00e3ae","#ffd870","#00d4ff","#ffffff"][i%4]
+      vx: (Math.random()*2-1) * (5+Math.random()*6),
+      vy: (Math.random()*2-1) * (5+Math.random()*6) - 2.5,
+      life: 60 + Math.random()*60,
+      size: 1.5 + Math.random()*3,
+      color: ["#00e3ae","#ffd870","#00d4ff","#ff4d6d","#ffffff"][i%5]
     });
   }
   let alive = true;
@@ -330,25 +384,49 @@ function urMegaFX(){
     if(!alive) return;
     spctx.clearRect(0,0,spark.width,spark.height);
     for(const p of parts){
-      p.x+=p.vx; p.y+=p.vy; p.vy+=0.03; p.life-=1;
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.035; p.life-=1;
       spctx.globalAlpha = Math.max(p.life/90,0);
       spctx.fillStyle = p.color;
       spctx.fillRect(p.x, p.y, p.size, p.size);
     }
-    if(parts.every(p=>p.life<=0)){ alive=false; spctx.clearRect(0,0,spark.width,spark.height); beam.classList.remove("show"); rays.classList.remove("show"); return; }
+    if(parts.every(p=>p.life<=0)){
+      alive=false; spctx.clearRect(0,0,spark.width,spark.height);
+      return;
+    }
     requestAnimationFrame(tick);
   })();
 }
+
+/* 新：UR/EX共通の“フリーズ風”演出 */
+function freezeBurstFX(){
+  freezeWhite.style.animation = "whiteHold 1.2s ease forwards";
+  freezeScan.style.animation  = "scanPulse 1.2s ease forwards";
+  freezeChroma.style.animation= "chromaPulse 1.2s ease forwards";
+
+  flashShake(true);
+  confettiBurst();
+
+  setTimeout(()=>{
+    freezeWhite.style.animation = "";
+    freezeScan.style.animation  = "";
+    freezeChroma.style.animation= "";
+  }, 1250);
+
+  return 900; // カードオープンまでの待機
+}
+
+/* 置換：UR/EXはフリーズ、SSRは軽フラッシュ */
 function playSpecialBeforeReveal(rarity){
-  if(rarity==="UR"){ flashShake(); urMegaFX(); return 250; }
+  if(rarity==="UR" || rarity==="EX"){ return freezeBurstFX(); }
   if(rarity==="SSR"){ flashShake(); return 220; }
   return 0;
 }
 
 /* ---- 進行制御 ---- */
 function clearResultsView(){
-  stopAllItemSparkles(); // UR常時キラ停止
+  stopAllItemSparkles();
   grid.innerHTML = ""; badge.textContent = "0 回"; headline.textContent = "結果がここに表示されます";
+  document.getElementById("resultCard").classList.remove("exMode");
 }
 
 function showNextCard(){
@@ -378,12 +456,12 @@ stage.addEventListener("click", ()=>{
     const delay = playSpecialBeforeReveal(currentItem.rarity);
     setTimeout(()=>{
       currentCard.classList.add("open");
-      if(currentItem.rarity==="SSR" || currentItem.rarity==="UR"){
+      if(currentItem.rarity==="SSR" || currentItem.rarity==="UR" || currentItem.rarity==="EX"){
         currentCard.querySelector(".front").classList.add("glowPulse");
       }
       phase = "opened";
       if(queue.length === 1){
-        setTimeout(()=>{ pointer = 1; showNextCard(); }, 450); // 単発は即一覧へ
+        setTimeout(()=>{ pointer = 1; showNextCard(); }, 450);
       }else{
         hint.textContent = (pointer < queue.length-1) ? "もう一度タップで次へ" : "もう一度タップで結果一覧へ";
       }
@@ -394,20 +472,20 @@ stage.addEventListener("click", ()=>{
   }
 });
 
-/* ---- すべてめくる：高レアがあれば演出→一覧＋フォーカス（TAPカード即消し） ---- */
+/* ---- すべてめくる：演出→一覧＋フォーカス ---- */
 btnSkipAll.addEventListener("click", (e)=>{
   e.stopPropagation();
   if(!inProgress) return;
 
-  // ステージのTAPカードを即消し
   stageHost.innerHTML = "";
   currentCard = null;
   hint.textContent = "";
 
-  const hasUR = queue.some(x=>x.rarity==="UR");
-  const hasSSR = !hasUR && queue.some(x=>x.rarity==="SSR");
+  const hasEX  = queue.some(x=>x.rarity==="EX");
+  const hasUR  = !hasEX && queue.some(x=>x.rarity==="UR");
+  const hasSSR = !hasEX && !hasUR && queue.some(x=>x.rarity==="SSR");
   let d = 0;
-  if(hasUR){ flashShake(); urMegaFX(); d = 460; }
+  if(hasEX || hasUR){ d = freezeBurstFX(); }
   else if(hasSSR){ flashShake(); d = 260; }
 
   setTimeout(()=>{
@@ -435,7 +513,7 @@ const grid = document.getElementById("grid");
 const badge = document.getElementById("badge");
 const headline = document.getElementById("headline");
 
-/* ★ URカード常時キラ粒：管理 */
+/* ★ UR/EXカード常時キラ粒：管理 */
 const activeSparkles = [];
 function stopAllItemSparkles(){
   while(activeSparkles.length){
@@ -450,7 +528,7 @@ function startItemSparkles(canvas){
   ro.observe(canvas);
   canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
 
-  const PALETTE = ["#00e3ae","#ffd870","#00d4ff","#ffffff"];
+  const PALETTE = ["#00e3ae","#ffd870","#00d4ff","#ffffff","#ff4d6d"];
   const MAX = 90;
   const parts = [];
 
@@ -497,21 +575,16 @@ function startItemSparkles(canvas){
 function applyMarqueeIfOverflow(el){
   const nameEl = el.querySelector('.name');
   if(!nameEl) return;
-  // 既に適用済みならスキップ
   if(nameEl.classList.contains('marquee')) return;
-
-  // 一旦素のテキストを取得
   const raw = nameEl.textContent;
-  // 計測のため一時的に通常表示
+
   nameEl.style.whiteSpace = 'nowrap';
   nameEl.style.overflow = 'hidden';
   nameEl.style.textOverflow = 'clip';
 
-  // 溢れ判定
   const need = nameEl.scrollWidth > nameEl.clientWidth + 2;
-  if(!need) return; // 収まっているならそのまま
+  if(!need) return;
 
-  // 無限ループ用に2回分を連結して走らせる
   nameEl.classList.add('marquee');
   nameEl.innerHTML = `
     <span class="track" aria-hidden="true">
@@ -525,11 +598,11 @@ function highestItem(items){
   return items.reduce((m,x)=> rankIdx(x.rarity) > rankIdx(m.rarity) ? x : m, items[0]);
 }
 function countByRarity(items){
-  const c={R:0,SR:0,SSR:0,UR:0}; for(const it of items) c[it.rarity]++; return c;
+  const c={R:0,SR:0,SSR:0,UR:0,EX:0}; for(const it of items) c[it.rarity]++; return c;
 }
 
 function showAllResults(items){
-  stopAllItemSparkles();        // 既存のキラ粒停止
+  stopAllItemSparkles();
   grid.innerHTML = "";
   for(const it of items){
     const el = document.createElement("div");
@@ -540,11 +613,10 @@ function showAllResults(items){
       <div class="rarityBar"></div>`;
     grid.appendChild(el);
 
-    // ★ 名前の無限マルキー（必要なカードだけ）
     applyMarqueeIfOverflow(el);
 
-    // ★ URなら常時キラ粒Canvas
-    if(it.rarity === "UR"){
+    // UR/EXなら常時キラ粒
+    if(it.rarity === "UR" || it.rarity === "EX"){
       const cv = document.createElement("canvas");
       cv.className = "sparkle";
       el.appendChild(cv);
@@ -557,7 +629,12 @@ function showAllResults(items){
   badge.textContent = `${items.length} 回`;
   const top = highestItem(items);
   const counts = countByRarity(items);
-  headline.textContent = `${now()}｜最高:${top.rarity}「${top.name}」｜UR:${counts.UR} / SSR:${counts.SSR} / SR:${counts.SR} / R:${counts.R}`;
+
+  const rc = document.getElementById("resultCard");
+  if(counts.EX > 0) rc.classList.add("exMode"); else rc.classList.remove("exMode");
+
+  headline.textContent =
+    `${now()}｜最高:${top.rarity}「${top.name}」｜EX:${counts.EX} / UR:${counts.UR} / SSR:${counts.SSR} / SR:${counts.SR} / R:${counts.R}`;
 }
 
 /* ---- 保存/Tweet ---- */
@@ -608,7 +685,7 @@ document.getElementById("btnRates").addEventListener("click", ()=>{
   modal.classList.add("show");
 });
 document.getElementById("closeModal").addEventListener("click", ()=> modal.classList.remove("show"));
-modal.addEventListener("click", (e)=>{ if(e.target===modal) modal.classList.remove("show"); }); // 背景クリックで閉じる
+modal.addEventListener("click", (e)=>{ if(e.target===modal) modal.classList.remove("show"); });
 </script>
 </body>
 </html>
