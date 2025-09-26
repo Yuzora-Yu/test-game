@@ -158,10 +158,10 @@
 <script>
 /* ---------------- ラインナップ＆確率 ---------------- */
 const RARITY = {
-  "R":   { rate: 0.78, color:"#56ccf2", name:"R" },
-  "SR":  { rate: 0.20, color:"#c1a8ff", name:"SR" },
-  "SSR": { rate: 0.019, color:"#ffd870", name:"SSR" },
-  "UR":  { rate: 0.001, color:"#00e3ae", name:"UR" }
+  "R":   { rate: 0.45, color:"#56ccf2", name:"R" },
+  "SR":  { rate: 0.35, color:"#c1a8ff", name:"SR" },
+  "SSR": { rate: 0.15, color:"#ffd870", name:"SSR" },
+  "UR":  { rate: 0.05, color:"#00e3ae", name:"UR" }
 };
 const POOL = [
   { name:"メガネ", rarity:"R",   icon:"👓" },
@@ -170,13 +170,13 @@ const POOL = [
   { name:"ギター", rarity:"R",   icon:"🎸" },
   { name:"カレーライス", rarity:"R", icon:"🍛" },
 
-  { name:"オ", rarity:"SR", icon:"🅾️" },
-  { name:"ー", rarity:"SR", icon:"➖" },
-  { name:"イ", rarity:"SR", icon:"🟨" },
-  { name:"シ", rarity:"SR", icon:"🟦" },
+  { name:"オ", rarity:"SR", icon:"🟥" },
+  { name:"ー", rarity:"SR", icon:"🟥" },
+  { name:"イ", rarity:"SR", icon:"🟥" },
+  { name:"シ", rarity:"SR", icon:"🟥" },
   { name:"マ", rarity:"SR", icon:"🟥" },
-  { name:"サ", rarity:"SR", icon:"🟧" },
-  { name:"ヨ", rarity:"SR", icon:"🟩" },
+  { name:"サ", rarity:"SR", icon:"🟥" },
+  { name:"ヨ", rarity:"SR", icon:"🟥" },
 
   { name:"オーマイゴシゴシ", rarity:"SSR", icon:"✨" },
   { name:"オーイシナカヨシ", rarity:"SSR", icon:"✨" },
@@ -201,7 +201,7 @@ const rankIdx = r => rankOrder.indexOf(r);
 
 /* -------------- 抽選 -------------- */
 function drawOne(){
-  // 1) レア度抽選
+  // 1) レア度抽選（指定確率）
   const rEntry = pickWeighted(Object.entries(RARITY).map(([k,v])=>({key:k, weight:v.rate})), "weight");
   const rarity = rEntry.key;
   // 2) 同レア内から一様抽選
@@ -216,10 +216,14 @@ const hint = document.getElementById("hint");
 const flash = document.getElementById("flash");
 const shakeHost = document.getElementById("shakeHost");
 
-let queue = [];       // 今回の10連結果
-let pointer = 0;      // 何枚目か
-let showing = false;  // 表になっているか
+let queue = [];       // 今回の結果（10連/単発）
+let pointer = 0;      // 現在のインデックス
+let phase = "idle";   // idle | closed | opened
+let lockTap = false;  // アニメ中の多重タップ防止
 let inProgress = false;
+let currentItem = null;
+let currentCard = null;
+let lastResults = []; // 直近の完走結果（Tweet/保存用）
 
 function createCard(item){
   const card = document.createElement("div");
@@ -242,42 +246,52 @@ function playSpecialBeforeReveal(rarity){
     shakeHost.classList.add("shake");
     setTimeout(()=>flash.classList.remove("show"), 220);
     setTimeout(()=>shakeHost.classList.remove("shake"), 620);
+    return 220; // 開くまでの遅延
   }
+  return 0;
 }
 
 function showNextCard(){
-  if(pointer >= queue.length){ // 全部終わった
+  if(pointer >= queue.length){
+    // 完走
     inProgress = false;
+    phase = "idle";
+    lastResults = queue.slice();
     showAllResults(queue);
     hint.textContent = "";
     return;
   }
-  showing = false;
   stageHost.innerHTML = "";
-  const item = queue[pointer];
-  const card = createCard(item);
-  stageHost.appendChild(card);
+  currentItem = queue[pointer];
+  currentCard = createCard(currentItem);
+  stageHost.appendChild(currentCard);
   hint.textContent = "タップでめくる";
-  // 1st tap: 演出→表
-  card.addEventListener("click", ()=>{
-    if(showing) return;
-    playSpecialBeforeReveal(item.rarity);
-    card.classList.add("open");
-    // 高レアは光り続ける（frontにクラス付与）
-    if(item.rarity==="SSR" || item.rarity==="UR"){
-      card.querySelector(".front").classList.add("glowPulse");
-    }
-    showing = true;
-    hint.textContent = (pointer < queue.length-1) ? "もう一度タップで次へ" : "もう一度タップで結果一覧へ";
-  }, {once:true});
+  phase = "closed";
+}
 
-  // 2nd tap: 次のカードへ
-  card.addEventListener("click", ()=>{
-    if(!showing) return;
+document.getElementById("stage").addEventListener("click", ()=>{
+  if(!inProgress || !currentCard) return;
+  if(lockTap) return;
+
+  if(phase === "closed"){
+    // 1st tap: 演出→表
+    lockTap = true;
+    const delay = playSpecialBeforeReveal(currentItem.rarity);
+    setTimeout(()=>{
+      currentCard.classList.add("open");
+      if(currentItem.rarity==="SSR" || currentItem.rarity==="UR"){
+        currentCard.querySelector(".front").classList.add("glowPulse");
+      }
+      phase = "opened";
+      hint.textContent = (pointer < queue.length-1) ? "もう一度タップで次へ" : "もう一度タップで結果一覧へ";
+      lockTap = false;
+    }, delay);
+  } else if(phase === "opened"){
+    // 2nd tap: 次のカードへ
     pointer++;
     showNextCard();
-  });
-}
+  }
+});
 
 function runTen(){
   if(inProgress) return;
@@ -286,7 +300,6 @@ function runTen(){
   inProgress = true;
   showNextCard();
 }
-
 function runSingle(){
   if(inProgress) return;
   queue = drawN(1);
@@ -302,6 +315,9 @@ const headline = document.getElementById("headline");
 
 function highestItem(items){
   return items.reduce((m,x)=> rankIdx(x.rarity) > rankIdx(m.rarity) ? x : m, items[0]);
+}
+function countByRarity(items){
+  const c={R:0,SR:0,SSR:0,UR:0}; for(const it of items) c[it.rarity]++; return c;
 }
 function showAllResults(items){
   grid.innerHTML = "";
@@ -320,10 +336,7 @@ function showAllResults(items){
   headline.textContent = `${now()}｜最高:${top.rarity}「${top.name}」｜UR:${counts.UR} / SSR:${counts.SSR} / SR:${counts.SR} / R:${counts.R}`;
 }
 
-/* -------------- 集計/保存/Tweet -------------- */
-function countByRarity(items){
-  const c={R:0,SR:0,SSR:0,UR:0}; for(const it of items) c[it.rarity]++; return c;
-}
+/* -------------- 保存/Tweet -------------- */
 document.getElementById("btnSave").addEventListener("click", async ()=>{
   const target = document.getElementById("resultCard");
   const canvas = await html2canvas(target,{scale:2,backgroundColor:"#0b0f1b"});
@@ -332,9 +345,9 @@ document.getElementById("btnSave").addEventListener("click", async ()=>{
   a.href = canvas.toDataURL("image/png"); a.click();
 });
 document.getElementById("btnTweet").addEventListener("click", ()=>{
-  if(queue.length===0){ alert("先にガチャを引いてください。"); return; }
-  const finalItems = [...queue]; // 直近のセッション
-  const top = highestItem(finalItems);
+  const items = lastResults.length ? lastResults : queue;
+  if(!items.length){ alert("先にガチャを引いてください。"); return; }
+  const top = highestItem(items);
   const text = [
     `${top.rarity}「${top.name}」を引いたよ！`,
     `あなたもオーイシガチャにチャレンジしてみて！！`,
@@ -349,7 +362,7 @@ document.getElementById("btnTweet").addEventListener("click", ()=>{
 document.getElementById("btnTen").addEventListener("click", runTen);
 document.getElementById("btnSingle").addEventListener("click", runSingle);
 document.getElementById("btnReset").addEventListener("click", ()=>{
-  inProgress = false; queue = []; pointer = 0; showing = false;
+  inProgress = false; queue = []; pointer = 0; phase = "idle"; lockTap = false;
   stageHost.innerHTML = ""; hint.textContent = "";
   grid.innerHTML = ""; badge.textContent = "0 回"; headline.textContent = "結果がここに表示されます";
 });
@@ -357,11 +370,10 @@ document.getElementById("btnReset").addEventListener("click", ()=>{
 /* -------------- 排出確率モーダル -------------- */
 const modal = document.getElementById("modal");
 document.getElementById("btnRates").addEventListener("click", ()=>{
-  // 中身を毎回生成（編集が即反映されるように）
   const rb = document.getElementById("rateBody"); rb.innerHTML = "";
   for(const k of rankOrder){
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td style="color:${RARITY[k].color};font-weight:700">${k}</td><td>${(RARITY[k].rate*100).toFixed(3)}%</td>`;
+    tr.innerHTML = `<td style="color:${RARITY[k].color};font-weight:700">${k}</td><td>${(RARITY[k].rate*100).toFixed(1)}%</td>`;
     rb.appendChild(tr);
   }
   const lb = document.getElementById("listBody"); lb.innerHTML = "";
@@ -374,7 +386,6 @@ document.getElementById("btnRates").addEventListener("click", ()=>{
 });
 document.getElementById("closeModal").addEventListener("click", ()=> modal.classList.remove("show"));
 modal.addEventListener("click", (e)=>{ if(e.target===modal) modal.classList.remove("show"); }); // 背景クリックで閉じる
-
 </script>
 </body>
 </html>
