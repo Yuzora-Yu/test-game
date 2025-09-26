@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>My Tiny Game</title>
+<canvas id="cv" width="480" height="320"></canvas>
+<script>
+const c = document.getElementById('cv'), g = c.getContext('2d');
+let x=40, y=40, vx=2, vy=1.5;
+function loop(){
+  g.fillStyle = '#111'; g.fillRect(0,0,c.width,c.height);
+  x+=vx; y+=vy;
+  if(x<10||x>c.width-10) vx*=-1;
+  if(y<10||y>c.height-10) vy*=-1;
+  g.fillStyle = '#0bf'; g.beginPath(); g.arc(x,y,10,0,Math.PI*2); g.fill();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
