@@ -3,94 +3,128 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ガチャ演出・カードめくりデモ</title>
+<title>オーイシガチャ -SSA単独記念ピックアップ-</title>
 <link rel="preconnect" href="https://unpkg.com">
 <style>
   :root{
-    --w: min(1100px, 96vw);
-    --bg: radial-gradient(1200px 600px at 50% -100px, #1d2332 0%, #0c0f1a 45%, #070915 100%);
+    --w: min(1120px, 96vw);
+    --bg: radial-gradient(1200px 600px at 50% -100px, #151a27 0%, #0b0f1b 45%, #070915 100%);
+    --panel: rgba(255,255,255,.06);
+    --border: rgba(255,255,255,.10);
   }
   html,body{height:100%}
-  body{margin:0;color:#fff;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI","Hiragino Sans","Noto Sans JP",Roboto,"Yu Gothic UI",sans-serif;background:var(--bg)}
+  body{
+    margin:0; color:#fff;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      "Hiragino Sans","Noto Sans JP","Yu Gothic UI", Roboto, sans-serif;
+    background: var(--bg);
+  }
+  header, main, footer { width: var(--w); margin: 18px auto; }
+  header h1{ margin: 8px 0 4px; font-size: clamp(22px,3.6vw,28px); letter-spacing:.02em; }
+  header p { margin: 0; color:#b9c4d4; }
 
-  header,main,footer{width:var(--w);margin:18px auto}
-  header h1{margin:8px 0 4px;font-size:clamp(22px,3.6vw,28px)}
-  header p{margin:0;color:#b9c4d4}
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-  .btn{padding:10px 14px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;border-radius:8px;cursor:pointer;backdrop-filter:blur(4px)}
-  .btn.primary{background:linear-gradient(135deg,#ff357a,#ff8a00);border-color:transparent}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+  .btn{
+    padding:10px 14px; border:1px solid rgba(255,255,255,.25);
+    background: var(--panel); color:#fff; border-radius:8px; cursor:pointer;
+    backdrop-filter: blur(4px);
+  }
+  .btn.primary{ background: linear-gradient(135deg,#ff357a,#ff8a00); border-color: transparent; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
 
-  /* ステージ */
-  #stage{position:relative;height:260px;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));box-shadow:0 12px 40px rgba(0,0,0,.35) inset,0 8px 26px rgba(0,0,0,.24)}
-  .flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.9),transparent 60%);opacity:0;pointer-events:none;transition:opacity 200ms ease}
-  .flash.show{opacity:1}
-  #shakeHost.shake{animation:shake .6s cubic-bezier(.36,.07,.19,.97) both}
-  @keyframes shake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(2px,0,0)}30%,50%,70%{transform:translate3d(-4px,0,0)}40%,60%{transform:translate3d(4px,0,0)}}
-
-  /* 結果カード */
-  #card{margin-top:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.26)}
-  .summary{display:flex;align-items:center;gap:10px}
-  .badge{background:#e0133c;padding:4px 10px;border-radius:999px;font-weight:700}
-  .rightbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-
-  /* カードグリッド */
-  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:12px}
-  @media (max-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
+  /* ステージ（1枚ずつの表示） */
+  #stage{
+    position:relative; height: 340px; border-radius:14px; overflow:hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    box-shadow: 0 12px 40px rgba(0,0,0,.35) inset, 0 8px 26px rgba(0,0,0,.24);
+    display:grid; place-items:center;
+  }
+  #stage .hint{ position:absolute; bottom:10px; left:0; right:0; text-align:center; color:#c7d2e4; opacity:.8; font-size:12px; }
 
   /* カード（3Dめくり） */
-  .card{perspective:900px}
-  .card .inner{position:relative;height:140px;border-radius:12px;transform-style:preserve-3d;transition:transform 700ms cubic-bezier(.2,.8,.2,1)}
-  .card.open .inner{transform:rotateY(180deg)}
-  .face{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;overflow:hidden;border:1px solid rgba(255,255,255,.12)}
-  .back{background:linear-gradient(135deg,#1a2030,#0e1422);display:grid;place-items:center}
-  .back::after{content:"★";font-size:28px;color:#8fb1ff;opacity:.8}
+  .card{ width:min(280px,70vw); height:min(180px,45vw); perspective: 1000px; }
+  .card .inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; transition: transform 700ms cubic-bezier(.2,.8,.2,1); }
+  .card.open .inner{ transform: rotateY(180deg); }
+  .face{ position:absolute; inset:0; border-radius:16px; backface-visibility:hidden; overflow:hidden; border:1px solid var(--border); }
+  .back{ display:grid; place-items:center; background: linear-gradient(135deg,#1a2030,#0e1422); }
+  .back::after{ content:"★ TAP"; font-weight:700; letter-spacing:.08em; color:#9fb1ff; }
+  .front{ transform: rotateY(180deg); background:#0b0f1b; display:grid; grid-template-rows:1fr auto; }
+  .art{ display:grid; place-items:center; }
+  .icon{ font-size:42px; }
+  .name{ text-align:center; font-size:14px; color:#d5dfef; padding:8px; border-top:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03); }
 
-  .front{transform:rotateY(180deg);background:#0b0f1b;display:grid;grid-template-rows:1fr auto;place-items:center}
-  .art{width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01))}
-  .art img{max-width:100%;max-height:100%;object-fit:contain}
-  .icon{font-size:30px}
-  .name{width:100%;text-align:center;font-size:12px;color:#d5dfef;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.06)}
-  .glow{position:absolute;inset:-2px;border-radius:12px;pointer-events:none;mix-blend-mode:screen;opacity:.8}
+  /* レア度グロー（表面） */
+  .glow{ position:absolute; inset:-2px; border-radius:16px; pointer-events:none; mix-blend-mode:screen; opacity:.85; }
+  .R  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(86,204,242,.30), transparent 60%);}
+  .SR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(193,168,255,.38), transparent 60%);}
+  .SSR.glowPulse, .UR.glowPulse { animation: glow 1.8s ease-in-out infinite; }
+  .SSR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(255,216,112,.45), transparent 60%);}
+  .UR  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(0,227,174,.50), transparent 60%);}
+  @keyframes glow{ 0%,100%{opacity:.7} 50%{opacity:1} }
 
-  /* レア度色 */
-  .R .glow{background:radial-gradient(80% 60% at 50% -10%,rgba(86,204,242,.35),transparent 60%)}
-  .SR .glow{background:radial-gradient(80% 60% at 50% -10%,rgba(193,168,255,.40),transparent 60%)}
-  .SSR .glow{background:radial-gradient(80% 60% at 50% -10%,rgba(255,216,112,.45),transparent 60%)}
-  .UR .glow{background:radial-gradient(80% 60% at 50% -10%,rgba(0,227,174,.50),transparent 60%)}
+  /* 特殊演出（表にする前） */
+  .flash{ position:absolute; inset:0; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.95), transparent 60%); opacity:0; pointer-events:none; }
+  .flash.show{ animation: flash .22s ease forwards; }
+  @keyframes flash{ from{opacity:0} to{opacity:1} }
+  #shakeHost.shake{ animation:shake .6s cubic-bezier(.36,.07,.19,.97) both }
+  @keyframes shake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(2px,0,0)}30%,50%,70%{transform:translate3d(-4px,0,0)}40%,60%{transform:translate3d(4px,0,0)}}
 
-  /* 紙吹雪キャンバス */
-  #confetti{position:fixed;inset:0;pointer-events:none}
+  /* 最終結果カード（保存対象） */
+  #resultCard{ margin-top:16px; background: var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.26); }
+  .summary{ display:flex; align-items:center; gap:10px; }
+  .badge{ background:#e0133c; padding:4px 10px; border-radius:999px; font-weight:700; }
+  .grid{ display:grid; grid-template-columns: repeat(5,1fr); gap:10px; margin-top:12px; }
+  @media (max-width:640px){ .grid{ grid-template-columns: repeat(3,1fr); } }
+  .item{ background:#0b0f1b; border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center; position:relative; overflow:hidden; }
+  .item .icon{ font-size:28px; }
+  .item .name{ margin-top:6px; font-size:12px; color:#d5dfef; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .item .rarityBar{ position:absolute; inset:auto 0 0 0; height:6px; }
+  .R  .rarityBar{ background: linear-gradient(90deg,#56ccf2,#2f80ed); }
+  .SR .rarityBar{ background: linear-gradient(90deg,#a18cd1,#fbc2eb); }
+  .SSR .rarityBar{ background: linear-gradient(90deg,#ffd76f,#ff8a00); box-shadow:0 0 16px rgba(255,200,64,.6); }
+  .UR .rarityBar{ background: linear-gradient(90deg,#9be15d,#00e3ae); box-shadow:0 0 18px rgba(0,227,174,.7); }
+
+  .rightbar{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+
+  /* モーダル（排出確率） */
+  .modal{ position:fixed; inset:0; display:none; place-items:center; background: rgba(0,0,0,.55); z-index:10; }
+  .modal.show{ display:grid; }
+  .sheet{ width:min(680px,92vw); background:#0f1424; border:1px solid var(--border); border-radius:12px; padding:14px; box-shadow: 0 20px 80px rgba(0,0,0,.6); }
+  .sheet h2{ margin:4px 0 8px; font-size:18px; }
+  .sheet .close{ float:right; font-weight:700; cursor:pointer; padding:4px 10px; border-radius:6px; background:#222b3f; }
+  .rates{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:8px; }
+  .rates table{ width:100%; border-collapse:collapse; background:#0b0f1b; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .rates th, .rates td{ padding:8px; border-bottom:1px solid rgba(255,255,255,.06); text-align:left; }
+  .rates th{ background:#131a2b; }
 </style>
-
 <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body id="shakeHost">
 <header>
-  <h1>ガチャ演出（カードめくり）</h1>
-  <p>単発/10連。カードをクリックでめくり。SSR/URは過激演出。結果を画像保存＆Tweet。</p>
+  <h1>オーイシガチャ -SSA単独記念ピックアップ-</h1>
+  <p>10連は「1枚ずつタップでめくる → 終了後に全結果表示」。SSR/URは演出つき！</p>
   <div class="toolbar">
     <button class="btn" id="btnSingle">単発（1回）</button>
     <button class="btn primary" id="btnTen">10連</button>
-    <button class="btn" id="btnFlipAll" disabled>全部めくる</button>
     <button class="btn" id="btnReset">クリア</button>
+    <button class="btn" id="btnRates">排出確率</button>
   </div>
 </header>
 
-<main style="width:var(--w);margin:auto">
-  <div id="stage">
+<main style="width:var(--w); margin:auto;">
+  <div id="stage" aria-label="演出ステージ">
+    <div id="stageHost"></div>
     <div class="flash" id="flash"></div>
-    <canvas id="confetti"></canvas>
+    <div class="hint" id="hint"></div>
   </div>
 
-  <!-- 結果（保存対象） -->
-  <section id="card">
+  <!-- 最終結果（画像保存対象） -->
+  <section id="resultCard">
     <div class="summary">
       <span class="badge" id="badge">0 回</span>
       <div id="headline">結果がここに表示されます</div>
     </div>
     <div class="grid" id="grid"></div>
-
     <div class="rightbar">
       <button class="btn" id="btnSave">結果を画像保存</button>
       <button class="btn" id="btnTweet">Tweet（結果を共有）</button>
@@ -99,215 +133,248 @@
   </section>
 </main>
 
-<footer style="width:var(--w);margin:20px auto;color:#9fb1c8;font-size:12px">
-  <p>画像は <code>POOL</code> の <code>img</code> にパス/URLを入れると表示されます（未指定時は絵文字）。</p>
+<footer style="width:var(--w); margin:20px auto; color:#9fb1c8; font-size:12px;">
+  <p>デモ用途。画像は使わず絵文字表示にしています（差し替え可）。</p>
 </footer>
 
-<script>
-/* ---------------- 設定 ---------------- */
-const RARITY = {
-  "R":   { rate: 0.75 },
-  "SR":  { rate: 0.20 },
-  "SSR": { rate: 0.045 },
-  "UR":  { rate: 0.005 }
-};
-/* 画像あり/なし混在OK（img未指定は絵文字iconを使う） */
-const POOL = [
-  { name:"スラッシュソード", rarity:"R",   weight: 10, icon:"🗡️", img:"" },
-  { name:"ヒールポーション", rarity:"R",   weight: 10, icon:"🧪", img:"" },
-  { name:"ライトボウ",       rarity:"R",   weight: 10, icon:"🏹", img:"" },
-  { name:"魔術書の切れ端",   rarity:"R",   weight: 10, icon:"📜", img:"" },
-  { name:"雷鳴の指輪",       rarity:"SR",  weight: 7,  icon:"💍", img:"assets/ring.png" },   /* 例：assets 配下に置く */
-  { name:"紅蓮のローブ",     rarity:"SR",  weight: 7,  icon:"🧥", img:"" },
-  { name:"蒼き宝珠",         rarity:"SR",  weight: 6,  icon:"🔮", img:"" },
-  { name:"天空の大剣",       rarity:"SSR", weight: 3,  icon:"⚔️", img:"assets/sword.png" },
-  { name:"鳳凰の翼",         rarity:"SSR", weight: 2,  icon:"🪽", img:"" },
-  { name:"世界樹の枝",       rarity:"UR",  weight: 1,  icon:"🌿", img:"assets/branch.png" },
-];
-const GUARANTEE_MIN_RARITY = "SR";
+<!-- 排出確率モーダル -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <span class="close" id="closeModal">×</span>
+    <h2>排出確率 / ラインナップ</h2>
+    <div class="rates">
+      <table>
+        <thead><tr><th>レア度</th><th>提供割合</th></tr></thead>
+        <tbody id="rateBody"></tbody>
+      </table>
+      <table>
+        <thead><tr><th>レア度</th><th>名称</th></tr></thead>
+        <tbody id="listBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-/* ---------------- 便利関数 ---------------- */
+<script>
+/* ---------------- ラインナップ＆確率 ---------------- */
+const RARITY = {
+  "R":   { rate: 0.78, color:"#56ccf2", name:"R" },
+  "SR":  { rate: 0.20, color:"#c1a8ff", name:"SR" },
+  "SSR": { rate: 0.019, color:"#ffd870", name:"SSR" },
+  "UR":  { rate: 0.001, color:"#00e3ae", name:"UR" }
+};
+const POOL = [
+  { name:"メガネ", rarity:"R",   icon:"👓" },
+  { name:"バナナ", rarity:"R",   icon:"🍌" },
+  { name:"マイク", rarity:"R",   icon:"🎤" },
+  { name:"ギター", rarity:"R",   icon:"🎸" },
+  { name:"カレーライス", rarity:"R", icon:"🍛" },
+
+  { name:"オ", rarity:"SR", icon:"🅾️" },
+  { name:"ー", rarity:"SR", icon:"➖" },
+  { name:"イ", rarity:"SR", icon:"🟨" },
+  { name:"シ", rarity:"SR", icon:"🟦" },
+  { name:"マ", rarity:"SR", icon:"🟥" },
+  { name:"サ", rarity:"SR", icon:"🟧" },
+  { name:"ヨ", rarity:"SR", icon:"🟩" },
+
+  { name:"オーマイゴシゴシ", rarity:"SSR", icon:"✨" },
+  { name:"オーイシナカヨシ", rarity:"SSR", icon:"✨" },
+  { name:"OxT", rarity:"SSR", icon:"🎵" },
+  { name:"Sound Schedule", rarity:"SSR", icon:"🎶" },
+  { name:"大石昌良", rarity:"SSR", icon:"🌟" },
+
+  { name:"オーイシマサヨシ", rarity:"UR", icon:"🧑‍🎤" },
+  { name:"義務わらのマサヨシ", rarity:"UR", icon:"👑" },
+];
+
+/* -------------- 便利関数 -------------- */
 const sum = a => a.reduce((x,y)=>x+y,0);
-const pickWeighted = (arr,key="weight")=>{
+const pickWeighted = (arr, key="weight")=>{
   const total = sum(arr.map(e=>e[key]??1)); let r=Math.random()*total;
   for(const e of arr){ r -= (e[key]??1); if(r<0) return e; }
   return arr.at(-1);
 };
-const now = () => new Date().toLocaleString("ja-JP");
-const rankIndex = r => ({R:0,SR:1,SSR:2,UR:3}[r]??0);
+const now = ()=> new Date().toLocaleString("ja-JP");
+const rankOrder = ["R","SR","SSR","UR"];
+const rankIdx = r => rankOrder.indexOf(r);
 
-/* ---------------- 抽選 ---------------- */
+/* -------------- 抽選 -------------- */
 function drawOne(){
-  const r = pickWeighted(Object.entries(RARITY).map(([k,v])=>({key:k,weight:v.rate})),"weight").key;
-  const cand = POOL.filter(p=>p.rarity===r);
-  return pickWeighted(cand);
+  // 1) レア度抽選
+  const rEntry = pickWeighted(Object.entries(RARITY).map(([k,v])=>({key:k, weight:v.rate})), "weight");
+  const rarity = rEntry.key;
+  // 2) 同レア内から一様抽選
+  const bucket = POOL.filter(p=>p.rarity===rarity);
+  return bucket[Math.floor(Math.random()*bucket.length)];
 }
-function drawTen(){
-  const res = Array.from({length:10},()=>drawOne());
-  if(!res.some(x=>rankIndex(x.rarity)>=rankIndex(GUARANTEE_MIN_RARITY))){
-    const cand = POOL.filter(x=>rankIndex(x.rarity)>=rankIndex(GUARANTEE_MIN_RARITY));
-    res[res.length-1] = pickWeighted(cand);
-  }
-  return res;
-}
+function drawN(n){ return Array.from({length:n}, drawOne); }
 
-/* ---------------- 画面要素 ---------------- */
-const grid = document.getElementById("grid");
-const badge = document.getElementById("badge");
-const headline = document.getElementById("headline");
-const btnFlipAll = document.getElementById("btnFlipAll");
+/* -------------- ステージ（1枚ずつ） -------------- */
+const stageHost = document.getElementById("stageHost");
+const hint = document.getElementById("hint");
 const flash = document.getElementById("flash");
 const shakeHost = document.getElementById("shakeHost");
 
-/* ---------------- カード描画 ---------------- */
-let currentItems = [];
-let openedCount = 0;
+let queue = [];       // 今回の10連結果
+let pointer = 0;      // 何枚目か
+let showing = false;  // 表になっているか
+let inProgress = false;
 
-function renderBacks(n){
-  grid.innerHTML = "";
-  for(let i=0;i<n;i++){
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <div class="inner">
-        <div class="face back"></div>
-        <div class="face front"><div class="glow"></div>
-          <div class="art"></div>
-          <div class="name"></div>
-        </div>
-      </div>`;
-    grid.appendChild(card);
-  }
-  openedCount = 0;
-  btnFlipAll.disabled = false;
+function createCard(item){
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <div class="inner">
+      <div class="face back"></div>
+      <div class="face front ${item.rarity}">
+        <div class="glow"></div>
+        <div class="art"><div class="icon">${item.icon||"🎴"}</div></div>
+        <div class="name">[${item.rarity}] ${item.name}</div>
+      </div>
+    </div>`;
+  return card;
 }
 
-function setCardData(card, item){
-  const front = card.querySelector(".front");
-  const art = card.querySelector(".art");
-  const name = card.querySelector(".name");
-  front.classList.add(item.rarity);
-
-  if(item.img){
-    const img = new Image();
-    img.alt = item.name;
-    img.src = item.img;
-    art.innerHTML = ""; art.appendChild(img);
-  }else{
-    art.innerHTML = `<div class="icon">${item.icon||"🎴"}</div>`;
+function playSpecialBeforeReveal(rarity){
+  if(rarity==="SSR" || rarity==="UR"){
+    flash.classList.add("show");
+    shakeHost.classList.add("shake");
+    setTimeout(()=>flash.classList.remove("show"), 220);
+    setTimeout(()=>shakeHost.classList.remove("shake"), 620);
   }
-  name.textContent = item.name;
+}
 
-  // クリックでめくる
+function showNextCard(){
+  if(pointer >= queue.length){ // 全部終わった
+    inProgress = false;
+    showAllResults(queue);
+    hint.textContent = "";
+    return;
+  }
+  showing = false;
+  stageHost.innerHTML = "";
+  const item = queue[pointer];
+  const card = createCard(item);
+  stageHost.appendChild(card);
+  hint.textContent = "タップでめくる";
+  // 1st tap: 演出→表
   card.addEventListener("click", ()=>{
-    if(card.classList.contains("open")) return;
+    if(showing) return;
+    playSpecialBeforeReveal(item.rarity);
     card.classList.add("open");
-    openedCount++;
-    if(item.rarity==="SSR" || item.rarity==="UR") boomEffect(item.rarity);
-    if(openedCount>=currentItems.length) btnFlipAll.disabled = true;
-  }, {once:false});
+    // 高レアは光り続ける（frontにクラス付与）
+    if(item.rarity==="SSR" || item.rarity==="UR"){
+      card.querySelector(".front").classList.add("glowPulse");
+    }
+    showing = true;
+    hint.textContent = (pointer < queue.length-1) ? "もう一度タップで次へ" : "もう一度タップで結果一覧へ";
+  }, {once:true});
+
+  // 2nd tap: 次のカードへ
+  card.addEventListener("click", ()=>{
+    if(!showing) return;
+    pointer++;
+    showNextCard();
+  });
 }
 
-function showResults(items){
-  currentItems = items.slice();
-  renderBacks(items.length);
+function runTen(){
+  if(inProgress) return;
+  queue = drawN(10);
+  pointer = 0;
+  inProgress = true;
+  showNextCard();
+}
 
-  // 各カードにデータ反映（裏面のまま）
-  Array.from(grid.children).forEach((card,i)=> setCardData(card, items[i]));
+function runSingle(){
+  if(inProgress) return;
+  queue = drawN(1);
+  pointer = 0;
+  inProgress = true;
+  showNextCard();
+}
 
+/* -------------- 最終結果カード -------------- */
+const grid = document.getElementById("grid");
+const badge = document.getElementById("badge");
+const headline = document.getElementById("headline");
+
+function highestItem(items){
+  return items.reduce((m,x)=> rankIdx(x.rarity) > rankIdx(m.rarity) ? x : m, items[0]);
+}
+function showAllResults(items){
+  grid.innerHTML = "";
+  for(const it of items){
+    const el = document.createElement("div");
+    el.className = `item ${it.rarity}`;
+    el.innerHTML = `
+      <div class="icon">${it.icon||"🎴"}</div>
+      <div class="name">[${it.rarity}] ${it.name}</div>
+      <div class="rarityBar"></div>`;
+    grid.appendChild(el);
+  }
   badge.textContent = `${items.length} 回`;
-  const c = countByRarity(items);
-  headline.textContent = `${now()}｜UR:${c.UR} / SSR:${c.SSR} / SR:${c.SR} / R:${c.R}`;
+  const top = highestItem(items);
+  const counts = countByRarity(items);
+  headline.textContent = `${now()}｜最高:${top.rarity}「${top.name}」｜UR:${counts.UR} / SSR:${counts.SSR} / SR:${counts.SR} / R:${counts.R}`;
 }
 
-/* ---------------- 演出：SSR/URで過激 ---------------- */
-function boomEffect(rarity){
-  // 1) 画面フラッシュ
-  flash.classList.add("show");
-  setTimeout(()=>flash.classList.remove("show"), 140);
-
-  // 2) シェイク（強度はレア度で変える）
-  shakeHost.classList.add("shake");
-  setTimeout(()=>shakeHost.classList.remove("shake"), 620);
-
-  // 3) 紙吹雪
-  confettiBurst(rarity);
-}
-
-/* ------- 紙吹雪（簡易） ------- */
-const cvs = document.getElementById("confetti");
-const ctx = cvs.getContext("2d");
-let pieces = [];
-function resize(){ cvs.width = innerWidth; cvs.height = innerHeight; }
-addEventListener("resize", resize); resize();
-function confettiColor(r){
-  return r==="UR" ? ["#00e3ae","#78ffd6","#e0fff4"] :
-         r==="SSR"? ["#ffd76f","#ffae00","#ffe9a3"] :
-                    ["#c8a7ff","#e6d6ff","#a98aff"];
-}
-function confettiBurst(rarity){
-  const colors = confettiColor(rarity);
-  const N = rarity==="UR" ? 220 : 150;
-  for(let i=0;i<N;i++){
-    pieces.push({
-      x: innerWidth/2, y: innerHeight*0.38,
-      vx: (Math.random()*2-1)* (6 + Math.random()*4),
-      vy: - (6 + Math.random()*3),
-      g:  0.18 + Math.random()*0.05,
-      w:  3 + Math.random()*3,
-      h:  6 + Math.random()*6,
-      c:  colors[i%colors.length],
-      a:  1,
-      r:  Math.random()*Math.PI
-    });
-  }
-}
-function tick(){
-  ctx.clearRect(0,0,cvs.width,cvs.height);
-  for(const p of pieces){
-    p.x += p.vx; p.y += p.vy; p.vy += p.g; p.r += 0.1; p.a -= 0.007;
-    ctx.save(); ctx.globalAlpha = Math.max(p.a,0);
-    ctx.translate(p.x,p.y); ctx.rotate(p.r);
-    ctx.fillStyle = p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
-    ctx.restore();
-  }
-  pieces = pieces.filter(p=>p.a>0 && p.y < innerHeight+40);
-  requestAnimationFrame(tick);
-}
-tick();
-
-/* ---------------- 集計/保存/Tweet ---------------- */
+/* -------------- 集計/保存/Tweet -------------- */
 function countByRarity(items){
   const c={R:0,SR:0,SSR:0,UR:0}; for(const it of items) c[it.rarity]++; return c;
 }
 document.getElementById("btnSave").addEventListener("click", async ()=>{
-  const target = document.getElementById("card");
-  const canvas = await html2canvas(target,{scale:2,backgroundColor:"#0c0f1a"});
+  const target = document.getElementById("resultCard");
+  const canvas = await html2canvas(target,{scale:2,backgroundColor:"#0b0f1b"});
   const a = document.createElement("a");
-  a.download = `gacha_result_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.png`;
+  a.download = `oishi_gacha_result_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.png`;
   a.href = canvas.toDataURL("image/png"); a.click();
 });
 document.getElementById("btnTweet").addEventListener("click", ()=>{
-  const text = encodeURIComponent(headline.textContent + " #ガチャ #カードめくり");
-  const url  = encodeURIComponent(location.href);
-  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`,"_blank");
+  if(queue.length===0){ alert("先にガチャを引いてください。"); return; }
+  const finalItems = [...queue]; // 直近のセッション
+  const top = highestItem(finalItems);
+  const text = [
+    `${top.rarity}「${top.name}」を引いたよ！`,
+    `あなたもオーイシガチャにチャレンジしてみて！！`,
+    `#オーイシマサヨシ #オーイシSSA #オーイシガチャ`,
+    location.href
+  ].join("\n");
+  const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  window.open(intent,"_blank");
 });
 
-/* ---------------- ボタン ---------------- */
-document.getElementById("btnSingle").addEventListener("click", ()=>{
-  showResults([drawOne()]);
-});
-document.getElementById("btnTen").addEventListener("click", ()=>{
-  showResults(drawTen());
-});
+/* -------------- ボタン -------------- */
+document.getElementById("btnTen").addEventListener("click", runTen);
+document.getElementById("btnSingle").addEventListener("click", runSingle);
 document.getElementById("btnReset").addEventListener("click", ()=>{
+  inProgress = false; queue = []; pointer = 0; showing = false;
+  stageHost.innerHTML = ""; hint.textContent = "";
   grid.innerHTML = ""; badge.textContent = "0 回"; headline.textContent = "結果がここに表示されます";
-  pieces.length = 0; // 紙吹雪クリア
 });
-document.getElementById("btnFlipAll").addEventListener("click", ()=>{
-  Array.from(grid.children).forEach(c=>c.classList.add("open"));
-  btnFlipAll.disabled = true;
+
+/* -------------- 排出確率モーダル -------------- */
+const modal = document.getElementById("modal");
+document.getElementById("btnRates").addEventListener("click", ()=>{
+  // 中身を毎回生成（編集が即反映されるように）
+  const rb = document.getElementById("rateBody"); rb.innerHTML = "";
+  for(const k of rankOrder){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td style="color:${RARITY[k].color};font-weight:700">${k}</td><td>${(RARITY[k].rate*100).toFixed(3)}%</td>`;
+    rb.appendChild(tr);
+  }
+  const lb = document.getElementById("listBody"); lb.innerHTML = "";
+  for(const it of POOL){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td style="color:${RARITY[it.rarity].color}">${it.rarity}</td><td>${it.name}</td>`;
+    lb.appendChild(tr);
+  }
+  modal.classList.add("show");
 });
+document.getElementById("closeModal").addEventListener("click", ()=> modal.classList.remove("show"));
+modal.addEventListener("click", (e)=>{ if(e.target===modal) modal.classList.remove("show"); }); // 背景クリックで閉じる
+
 </script>
 </body>
 </html>
