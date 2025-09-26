@@ -151,7 +151,7 @@
   </div>
 
   <!-- 最終結果（画像保存対象） -->
-  <section id="resultCard">
+  <section id="resultCard" tabindex="-1">
     <div class="summary">
       <span class="badge" id="badge">0 回</span>
       <div id="headline">結果がここに表示されます</div>
@@ -188,7 +188,7 @@
 </div>
 
 <script>
-/* ---------------- ラインナップ＆確率（あなたの最新版を反映） ---------------- */
+/* ---------------- ラインナップ＆確率（最新版） ---------------- */
 const RARITY = {
   "R":   { rate: 0.52, color:"#56ccf2", name:"R" },
   "SR":  { rate: 0.35, color:"#c1a8ff", name:"SR" },
@@ -263,6 +263,13 @@ let currentItem = null;
 let currentCard = null;
 let lastResults = []; // 直近の完走結果（Tweet/保存用）
 
+/* --- 結果エリアへフォーカス移動 --- */
+function focusResult(){
+  const rc = document.getElementById("resultCard");
+  rc.scrollIntoView({behavior:"smooth", block:"start"});
+  setTimeout(()=> rc.focus({preventScroll:true}), 300);
+}
+
 function createCard(item){
   const card = document.createElement("div");
   card.className = "card";
@@ -288,7 +295,6 @@ function flashShake(){
 function urMegaFX(){ // UR専用：ビーム＋レイ＋星粒
   beam.classList.add("show");
   rays.classList.add("show");
-  // 星粒
   const N = 180;
   const cx = spark.width/2, cy = spark.height*0.48;
   const parts = [];
@@ -316,7 +322,6 @@ function urMegaFX(){ // UR専用：ビーム＋レイ＋星粒
     requestAnimationFrame(tick);
   })();
 }
-
 function playSpecialBeforeReveal(rarity){
   if(rarity==="UR"){ flashShake(); urMegaFX(); return 250; }
   if(rarity==="SSR"){ flashShake(); return 220; }
@@ -329,13 +334,11 @@ function clearResultsView(){
 }
 function showNextCard(){
   if(pointer >= queue.length){
-    // 完走
-    inProgress = false;
-    phase = "idle";
+    inProgress = false; phase = "idle";
     lastResults = queue.slice();
     showAllResults(queue);
-    hint.textContent = "";
-    btnSkipAll.style.display = "none";
+    hint.textContent = ""; btnSkipAll.style.display = "none";
+    focusResult(); // ★ 完走したら結果へスクロール
     return;
   }
   stageHost.innerHTML = "";
@@ -352,7 +355,6 @@ stage.addEventListener("click", ()=>{
   if(lockTap) return;
 
   if(phase === "closed"){
-    // 1st tap: 演出→表
     lockTap = true;
     const delay = playSpecialBeforeReveal(currentItem.rarity);
     setTimeout(()=>{
@@ -370,29 +372,37 @@ stage.addEventListener("click", ()=>{
       lockTap = false;
     }, delay);
   } else if(phase === "opened"){
-    // 2nd tap: 次のカードへ（10連）
-    pointer++;
-    showNextCard();
+    pointer++; showNextCard();
   }
 });
 
+/* --- すべてめくる：高レアがあれば演出→一覧＆スクロール --- */
 btnSkipAll.addEventListener("click", (e)=>{
   e.stopPropagation();
   if(!inProgress) return;
-  inProgress = false; phase = "idle"; lastResults = queue.slice();
-  showAllResults(queue); hint.textContent = ""; btnSkipAll.style.display = "none";
+  const hasUR = queue.some(x=>x.rarity==="UR");
+  const hasSSR = !hasUR && queue.some(x=>x.rarity==="SSR");
+  let d = 0;
+  if(hasUR){ flashShake(); urMegaFX(); d = 460; }
+  else if(hasSSR){ flashShake(); d = 260; }
+
+  setTimeout(()=>{
+    inProgress = false; phase = "idle"; lastResults = queue.slice();
+    showAllResults(queue); hint.textContent = ""; btnSkipAll.style.display = "none";
+    focusResult(); // ★ 結果へ移動
+  }, d);
 });
 
 /* --- 実行ボタン --- */
 function runTen(){
   if(inProgress) return;
-  clearResultsView();            // ★ 新規開始時に下をクリア
+  clearResultsView();                 // 新規開始時に下をクリア
   queue = drawN(10);
   pointer = 0; inProgress = true; showNextCard();
 }
 function runSingle(){
   if(inProgress) return;
-  clearResultsView();            // ★ 新規開始時に下をクリア
+  clearResultsView();                 // 新規開始時に下をクリア
   queue = drawN(1);
   pointer = 0; inProgress = true; showNextCard();
 }
