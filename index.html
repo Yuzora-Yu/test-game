@@ -1,310 +1,312 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>オーイシSSA 物販計算ツール</title>
-  <style>
-    :root { --w: min(1100px, 96vw); --gap: 12px; }
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif; line-height: 1.6; margin: 0; color: #222; background: #fafafa; }
-    header, main, footer { width: var(--w); margin: 20px auto; }
-    header h1 { margin: 8px 0 0; font-size: clamp(20px, 3.4vw, 28px); }
-    header p { margin: 6px 0 0; color: #555; }
-    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
-    .toolbtn { padding: 8px 12px; border: 1px solid #ccc; background: #fff; border-radius: 6px; cursor: pointer; }
-    .toolbtn.primary { background:#b80d21; color:#fff; border-color:#b80d21; }
-    .toolbtn:disabled { opacity:.5; cursor:not-allowed; }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ガチャ演出・カードめくりデモ</title>
+<link rel="preconnect" href="https://unpkg.com">
+<style>
+  :root{
+    --w: min(1100px, 96vw);
+    --bg: radial-gradient(1200px 600px at 50% -100px, #1d2332 0%, #0c0f1a 45%, #070915 100%);
+  }
+  html,body{height:100%}
+  body{margin:0;color:#fff;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI","Hiragino Sans","Noto Sans JP",Roboto,"Yu Gothic UI",sans-serif;background:var(--bg)}
 
-    table { width: 100%; border-collapse: collapse; background:#fff; }
-    thead th { position: sticky; top: 0; background:#f4f4f4; }
-    th, td { border-bottom: 1px solid #eee; padding: 10px 8px; text-align: left; }
-    th.num, td.num { text-align: right; white-space: nowrap; }
-    input.qty { width: 80px; padding: 6px 8px; text-align: right; }
-    tfoot td { background:#fbfbfb; font-weight: 600; }
-    .note { color:#666; font-size: 12px; }
+  header,main,footer{width:var(--w);margin:18px auto}
+  header h1{margin:8px 0 4px;font-size:clamp(22px,3.6vw,28px)}
+  header p{margin:0;color:#b9c4d4}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .btn{padding:10px 14px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;border-radius:8px;cursor:pointer;backdrop-filter:blur(4px)}
+  .btn.primary{background:linear-gradient(135deg,#ff357a,#ff8a00);border-color:transparent}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
 
-    /* 結果カード（画像保存対象） */
-    #resultCard { background:#fff; border:1px solid #eee; border-radius:8px; padding:16px; margin-top:16px; box-shadow: 0 8px 26px rgba(0,0,0,.04); }
+  /* ステージ */
+  #stage{position:relative;height:260px;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));box-shadow:0 12px 40px rgba(0,0,0,.35) inset,0 8px 26px rgba(0,0,0,.24)}
+  .flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.9),transparent 60%);opacity:0;pointer-events:none;transition:opacity 200ms ease}
+  .flash.show{opacity:1}
+  #shakeHost.shake{animation:shake .6s cubic-bezier(.36,.07,.19,.97) both}
+  @keyframes shake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(2px,0,0)}30%,50%,70%{transform:translate3d(-4px,0,0)}40%,60%{transform:translate3d(4px,0,0)}}
 
-    /* ▼下部リスト：左=商品名 / 右=（×）数量（＝）金額 を固定幅で整列 */
-    #summaryList { margin: 8px 0 0; padding-left: 1.2em; }
-    #summaryList li { margin: 2px 0; list-style: disc; }
-    .summary-row {
-      display: grid;
-      /* name | × | qty(3桁) | ＝ | amount(¥+7桁+カンマ分) */
-      grid-template-columns: 1fr auto 4ch auto 11ch;
-      column-gap: 6px;
-      align-items: baseline;
-    }
-    /* 数値は等幅＆タブラーで幅ブレ回避 */
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Noto Sans Mono CJK JP", monospace;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: 0; /* 一部の等幅での間延び防止 */
-    }
-    .summary-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .summary-sym  { opacity: .9; }           /* 「×」「＝」 */
-    .summary-qty  { text-align: right; }     /* 3桁想定 → 4ch（前後余白含む） */
-    .summary-amt  { text-align: right; }     /* 「¥9,999,999」想定 → 11ch */
-    /* 任意：スマホで右側が詰まりすぎる場合は少し余白 */
-    @media (max-width: 420px){
-      .summary-row { column-gap: 4px; grid-template-columns: 1fr auto 4ch auto 12ch; }
-    }
+  /* 結果カード */
+  #card{margin-top:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.26)}
+  .summary{display:flex;align-items:center;gap:10px}
+  .badge{background:#e0133c;padding:4px 10px;border-radius:999px;font-weight:700}
+  .rightbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 
-    .badge { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#b80d21; color:#fff; font-weight:700; }
+  /* カードグリッド */
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:12px}
+  @media (max-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
 
-    .grid { display:grid; gap: var(--gap); grid-template-columns: 1fr; }
-    @media (min-width: 880px){ .grid { grid-template-columns: 1fr; } }
-  </style>
-  <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  /* カード（3Dめくり） */
+  .card{perspective:900px}
+  .card .inner{position:relative;height:140px;border-radius:12px;transform-style:preserve-3d;transition:transform 700ms cubic-bezier(.2,.8,.2,1)}
+  .card.open .inner{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+  .back{background:linear-gradient(135deg,#1a2030,#0e1422);display:grid;place-items:center}
+  .back::after{content:"★";font-size:28px;color:#8fb1ff;opacity:.8}
+
+  .front{transform:rotateY(180deg);background:#0b0f1b;display:grid;grid-template-rows:1fr auto;place-items:center}
+  .art{width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01))}
+  .art img{max-width:100%;max-height:100%;object-fit:contain}
+  .icon{font-size:30px}
+  .name{width:100%;text-align:center;font-size:12px;color:#d5dfef;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.06)}
+  .glow{position:absolute;inset:-2px;border-radius:12px;pointer-events:none;mix-blend-mode:screen;opacity:.8}
+
+  /* レア度色 */
+  .R .glow{background:radial-gradient(80% 60% at 50% -10%,rgba(86,204,242,.35),transparent 60%)}
+  .SR .glow{background:radial-gradient(80% 60% at 50% -10%,rgba(193,168,255,.40),transparent 60%)}
+  .SSR .glow{background:radial-gradient(80% 60% at 50% -10%,rgba(255,216,112,.45),transparent 60%)}
+  .UR .glow{background:radial-gradient(80% 60% at 50% -10%,rgba(0,227,174,.50),transparent 60%)}
+
+  /* 紙吹雪キャンバス */
+  #confetti{position:fixed;inset:0;pointer-events:none}
+</style>
+
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
-<body>
+<body id="shakeHost">
 <header>
-  <h1>オーイシSSA ライブ物販 計算ツール</h1>
-  <p class="note">数量を入れると自動計算されます。価格は税込想定。必要に応じて品目の一覧はコード内の <code>ITEMS</code> を編集してください。</p>
+  <h1>ガチャ演出（カードめくり）</h1>
+  <p>単発/10連。カードをクリックでめくり。SSR/URは過激演出。結果を画像保存＆Tweet。</p>
   <div class="toolbar">
-    <button class="toolbtn" id="btnReset">数量をクリア</button>
-    <button class="toolbtn" id="btnSample">数量をサンプル入力</button>
+    <button class="btn" id="btnSingle">単発（1回）</button>
+    <button class="btn primary" id="btnTen">10連</button>
+    <button class="btn" id="btnFlipAll" disabled>全部めくる</button>
+    <button class="btn" id="btnReset">クリア</button>
   </div>
 </header>
 
-<main class="grid">
-  <section>
-    <table id="itemsTable" aria-label="商品一覧">
-      <thead>
-        <tr>
-          <th style="width:48%">商品名</th>
-          <th class="num" style="width:14%">単価</th>
-          <th class="num" style="width:18%">購入数</th>
-          <th class="num" style="width:20%">小計</th>
-        </tr>
-      </thead>
-      <tbody id="itemsBody"></tbody>
-      <tfoot>
-        <tr>
-          <td>合計</td>
-          <td class="num" id="footUnit"></td>
-          <td class="num"><span id="footCount">0</span> 点</td>
-          <td class="num"><span id="footTotal">¥0</span></td>
-        </tr>
-      </tfoot>
-    </table>
+<main style="width:var(--w);margin:auto">
+  <div id="stage">
+    <div class="flash" id="flash"></div>
+    <canvas id="confetti"></canvas>
+  </div>
 
-    <!-- ここが保存対象（ボタンは外側に出しました） -->
-    <div id="resultCard">
-      <div><span class="badge" id="badgeCount">0 点</span> / 合計 <strong id="grandTotal">¥0</strong></div>
-      <ul id="summaryList" aria-live="polite"></ul>
+  <!-- 結果（保存対象） -->
+  <section id="card">
+    <div class="summary">
+      <span class="badge" id="badge">0 回</span>
+      <div id="headline">結果がここに表示されます</div>
     </div>
+    <div class="grid" id="grid"></div>
 
-    <!-- ボタンは枠の外（画像に入らない） -->
-    <div class="toolbar">
-      <button class="toolbtn" id="btnSaveImg">この内容を画像保存</button>
-      <button class="toolbtn primary" id="btnTweet">Tweet（文面を作成）</button>
+    <div class="rightbar">
+      <button class="btn" id="btnSave">結果を画像保存</button>
+      <button class="btn" id="btnTweet">Tweet（結果を共有）</button>
     </div>
+    <p style="color:#9fb1c8;font-size:12px;margin:6px 0 0;">※画像は自動添付できないため、保存後にツイート画面で添付してください。</p>
   </section>
 </main>
 
-<footer class="note">
-  <p>※Web仕様上、ツイートに画像を自動添付することはできません。まず「画像保存」で保存→ツイート画面で画像を添付してください。</p>
-  <p>※非公式の個人ツールです。価格・品目はお手元でご確認ください。</p>
+<footer style="width:var(--w);margin:20px auto;color:#9fb1c8;font-size:12px">
+  <p>画像は <code>POOL</code> の <code>img</code> にパス/URLを入れると表示されます（未指定時は絵文字）。</p>
 </footer>
 
 <script>
-/* ---- 品目定義 ---- */
-const ITEMS = [
-  { key:"tshirt_white", name:"Tシャツ WHITE", price:5000 },
-  { key:"tshirt_pigment", name:"Tシャツ PIGMENT BLACK", price:5000 },
-  { key:"longsleeve_logo", name:"ロングT WHITE（CLUB014限定）", price:6500 },
-  { key:"denim_shirt", name:"デニムシャツ", price:9500 },
-  { key:"knit_cap", name:"ニットキャップ", price:3900 },
-  { key:"shoulder_bag", name:"ショルダーバッグ", price:7700 },
-  { key:"metallic_pouch", name:"メタリックポーチ", price:2500 },
-  { key:"sports_towel", name:"スポーツタオル", price:2500 },
-  { key:"penlight", name:"ペンライト", price:3800 },
-  { key:"rubber_band_day1", name:"ラバーバンド（Day1カラー）", price:600 },
-  { key:"rubber_band_day2", name:"ラバーバンド（Day2カラー）", price:600 },
-  { key:"miniyoshi", name:"ミニヨシ オーイシSSA ver", price:3300 },
-  { key:"kusorip", name:"おしゃべりクソリップ", price:900 },
-  { key:"acrylic_keyholder", name:"証明写真風キーホルダー 全5種", price:700 },
-  { key:"bins_day1", name:"オーイシSSAビンズ（Day1デザイン）", price:1000 },
-  { key:"bins_day2", name:"オーイシSSAビンズ（Day2デザイン）", price:1000 },
-  { key:"big_acrylic", name:"BIGステッカー＆スマホステッカー", price:900 },
-  { key:"shopper", name:"ショッパー", price:600 },
-
-  { key:"glasses_case", name:"メガネケースセット", price:6000 },
-  { key:"bucket_shoulder", name:"ドロストショルダーバッグ", price:4000 },
-  { key:"bucket_hat", name:"バケットハット", price:3800 },
-  { key:"neckstrap", name:"オーイシ武道館ネックストラップ", price:1800 },
-  { key:"lanyard", name:"マイクマサ ランダムアクリルキーホルダー 全4種", price:1200 },
-  { key:"tshirt_silkwhite", name:"Tシャツ SILK WHITE（31・32）", price:6000 },
-  { key:"tshirt_pigmentA", name:"Tシャツ PIGMENT BLACK（33・34）", price:6000 },
-  { key:"tshirt_pigmentB", name:"Tシャツ PIGMENT BLACK（35・36）", price:6000 },
-  { key:"trainer_black", name:"トラックジャケット BLACK", price:12000 },
-  { key:"pants_black", name:"パンツ BLACK", price:9000 },
-  { key:"pants_yellow", name:"パンツ YELLOW", price:9000 },
-  { key:"cap", name:"キャップ", price:4000 },
-  { key:"boxer_gray", name:"ボクサーパンツ GRAY", price:4500 },
-  { key:"boxer_yellow", name:"ボクサーパンツ YELLOW", price:4500 },
-  { key:"socks_white", name:"ソックス WHITE×YELLOW", price:2500 },
-  { key:"socks_gray", name:"ソックス GRAY×YELLOW", price:2500 },
-  { key:"towel_vol2", name:"オーイシ武道館Vol.2 スポーツタオル", price:2500 },
-  { key:"penlight_vol2", name:"オーイシ武道館Vol.2 ペンライト", price:1900 },
-  { key:"sensu", name:"オーイシ武道館Vol.2 クリアうちわ", price:1900 },
-  { key:"beadsstrap", name:"オーイシ武道館Vol.2 スマホビーズストラップ", price:1900 },
-  { key:"overall", name:"オーイシマサヨシ×Leeコラボ オーバーオール", price:19800 },
-  { key:"tshirt_powerA", name:"J-POWERコラボTシャツ（エレクトリックパレード）", price:3000 },
-  { key:"tshirt_powerB", name:"J-POWERコラボTシャツ（でんき犬）", price:3000 },
-  { key:"towel_power", name:"J-POWERコラボタオル（でんき犬）", price:2000 },
-
-  { key:"gachaA", name:"ガチャA（全13種）", price:500 },
-  { key:"gachaB", name:"ガチャB（全12種＋シークレット1種）", price:500 },
-];
-
-/* ---- ユーティリティ ---- */
-const yen = n => "¥" + n.toLocaleString("ja-JP");
-const clampInt = v => {
-  if (v === "" || v === null || v === undefined) return 0;
-  const n = parseInt(v, 10);
-  return Math.max(0, Math.min(9999, Number.isFinite(n) ? n : 0));
+/* ---------------- 設定 ---------------- */
+const RARITY = {
+  "R":   { rate: 0.75 },
+  "SR":  { rate: 0.20 },
+  "SSR": { rate: 0.045 },
+  "UR":  { rate: 0.005 }
 };
+/* 画像あり/なし混在OK（img未指定は絵文字iconを使う） */
+const POOL = [
+  { name:"スラッシュソード", rarity:"R",   weight: 10, icon:"🗡️", img:"" },
+  { name:"ヒールポーション", rarity:"R",   weight: 10, icon:"🧪", img:"" },
+  { name:"ライトボウ",       rarity:"R",   weight: 10, icon:"🏹", img:"" },
+  { name:"魔術書の切れ端",   rarity:"R",   weight: 10, icon:"📜", img:"" },
+  { name:"雷鳴の指輪",       rarity:"SR",  weight: 7,  icon:"💍", img:"assets/ring.png" },   /* 例：assets 配下に置く */
+  { name:"紅蓮のローブ",     rarity:"SR",  weight: 7,  icon:"🧥", img:"" },
+  { name:"蒼き宝珠",         rarity:"SR",  weight: 6,  icon:"🔮", img:"" },
+  { name:"天空の大剣",       rarity:"SSR", weight: 3,  icon:"⚔️", img:"assets/sword.png" },
+  { name:"鳳凰の翼",         rarity:"SSR", weight: 2,  icon:"🪽", img:"" },
+  { name:"世界樹の枝",       rarity:"UR",  weight: 1,  icon:"🌿", img:"assets/branch.png" },
+];
+const GUARANTEE_MIN_RARITY = "SR";
 
-/* ---- テーブル描画 ---- */
-const tbody = document.getElementById("itemsBody");
-const inputs = {};
-function renderTable() {
-  tbody.innerHTML = "";
-  for (const item of ITEMS) {
-    const tr = document.createElement("tr");
+/* ---------------- 便利関数 ---------------- */
+const sum = a => a.reduce((x,y)=>x+y,0);
+const pickWeighted = (arr,key="weight")=>{
+  const total = sum(arr.map(e=>e[key]??1)); let r=Math.random()*total;
+  for(const e of arr){ r -= (e[key]??1); if(r<0) return e; }
+  return arr.at(-1);
+};
+const now = () => new Date().toLocaleString("ja-JP");
+const rankIndex = r => ({R:0,SR:1,SSR:2,UR:3}[r]??0);
 
-    const tdName = document.createElement("td");
-    tdName.textContent = item.name;
-    tr.appendChild(tdName);
+/* ---------------- 抽選 ---------------- */
+function drawOne(){
+  const r = pickWeighted(Object.entries(RARITY).map(([k,v])=>({key:k,weight:v.rate})),"weight").key;
+  const cand = POOL.filter(p=>p.rarity===r);
+  return pickWeighted(cand);
+}
+function drawTen(){
+  const res = Array.from({length:10},()=>drawOne());
+  if(!res.some(x=>rankIndex(x.rarity)>=rankIndex(GUARANTEE_MIN_RARITY))){
+    const cand = POOL.filter(x=>rankIndex(x.rarity)>=rankIndex(GUARANTEE_MIN_RARITY));
+    res[res.length-1] = pickWeighted(cand);
+  }
+  return res;
+}
 
-    const tdPrice = document.createElement("td");
-    tdPrice.className = "num";
-    tdPrice.textContent = yen(item.price);
-    tr.appendChild(tdPrice);
+/* ---------------- 画面要素 ---------------- */
+const grid = document.getElementById("grid");
+const badge = document.getElementById("badge");
+const headline = document.getElementById("headline");
+const btnFlipAll = document.getElementById("btnFlipAll");
+const flash = document.getElementById("flash");
+const shakeHost = document.getElementById("shakeHost");
 
-    const tdQty = document.createElement("td");
-    tdQty.className = "num";
-    const input = document.createElement("input");
-    input.type = "number";
-    input.min = "0"; input.max = "9999";
-    input.value = "";             // 初期は空欄
-    input.placeholder = "0";
-    input.className = "qty";
-    input.id = "qty_" + item.key;
-    input.addEventListener("input", updateAll);
-    inputs[item.key] = input;
-    tdQty.appendChild(input);
-    tr.appendChild(tdQty);
+/* ---------------- カード描画 ---------------- */
+let currentItems = [];
+let openedCount = 0;
 
-    const tdSub = document.createElement("td");
-    tdSub.className = "num";
-    tdSub.id = "sub_" + item.key;
-    tdSub.textContent = yen(0);
-    tr.appendChild(tdSub);
+function renderBacks(n){
+  grid.innerHTML = "";
+  for(let i=0;i<n;i++){
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="inner">
+        <div class="face back"></div>
+        <div class="face front"><div class="glow"></div>
+          <div class="art"></div>
+          <div class="name"></div>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  }
+  openedCount = 0;
+  btnFlipAll.disabled = false;
+}
 
-    tbody.appendChild(tr);
+function setCardData(card, item){
+  const front = card.querySelector(".front");
+  const art = card.querySelector(".art");
+  const name = card.querySelector(".name");
+  front.classList.add(item.rarity);
+
+  if(item.img){
+    const img = new Image();
+    img.alt = item.name;
+    img.src = item.img;
+    art.innerHTML = ""; art.appendChild(img);
+  }else{
+    art.innerHTML = `<div class="icon">${item.icon||"🎴"}</div>`;
+  }
+  name.textContent = item.name;
+
+  // クリックでめくる
+  card.addEventListener("click", ()=>{
+    if(card.classList.contains("open")) return;
+    card.classList.add("open");
+    openedCount++;
+    if(item.rarity==="SSR" || item.rarity==="UR") boomEffect(item.rarity);
+    if(openedCount>=currentItems.length) btnFlipAll.disabled = true;
+  }, {once:false});
+}
+
+function showResults(items){
+  currentItems = items.slice();
+  renderBacks(items.length);
+
+  // 各カードにデータ反映（裏面のまま）
+  Array.from(grid.children).forEach((card,i)=> setCardData(card, items[i]));
+
+  badge.textContent = `${items.length} 回`;
+  const c = countByRarity(items);
+  headline.textContent = `${now()}｜UR:${c.UR} / SSR:${c.SSR} / SR:${c.SR} / R:${c.R}`;
+}
+
+/* ---------------- 演出：SSR/URで過激 ---------------- */
+function boomEffect(rarity){
+  // 1) 画面フラッシュ
+  flash.classList.add("show");
+  setTimeout(()=>flash.classList.remove("show"), 140);
+
+  // 2) シェイク（強度はレア度で変える）
+  shakeHost.classList.add("shake");
+  setTimeout(()=>shakeHost.classList.remove("shake"), 620);
+
+  // 3) 紙吹雪
+  confettiBurst(rarity);
+}
+
+/* ------- 紙吹雪（簡易） ------- */
+const cvs = document.getElementById("confetti");
+const ctx = cvs.getContext("2d");
+let pieces = [];
+function resize(){ cvs.width = innerWidth; cvs.height = innerHeight; }
+addEventListener("resize", resize); resize();
+function confettiColor(r){
+  return r==="UR" ? ["#00e3ae","#78ffd6","#e0fff4"] :
+         r==="SSR"? ["#ffd76f","#ffae00","#ffe9a3"] :
+                    ["#c8a7ff","#e6d6ff","#a98aff"];
+}
+function confettiBurst(rarity){
+  const colors = confettiColor(rarity);
+  const N = rarity==="UR" ? 220 : 150;
+  for(let i=0;i<N;i++){
+    pieces.push({
+      x: innerWidth/2, y: innerHeight*0.38,
+      vx: (Math.random()*2-1)* (6 + Math.random()*4),
+      vy: - (6 + Math.random()*3),
+      g:  0.18 + Math.random()*0.05,
+      w:  3 + Math.random()*3,
+      h:  6 + Math.random()*6,
+      c:  colors[i%colors.length],
+      a:  1,
+      r:  Math.random()*Math.PI
+    });
   }
 }
-renderTable();
-
-/* ---- 計算とサマリー ---- */
-function getCart() {
-  const cart = [];
-  for (const item of ITEMS) {
-    const qty = clampInt(inputs[item.key].value);
-    if (qty > 0) cart.push({ ...item, qty, subtotal: item.price * qty });
+function tick(){
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  for(const p of pieces){
+    p.x += p.vx; p.y += p.vy; p.vy += p.g; p.r += 0.1; p.a -= 0.007;
+    ctx.save(); ctx.globalAlpha = Math.max(p.a,0);
+    ctx.translate(p.x,p.y); ctx.rotate(p.r);
+    ctx.fillStyle = p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    ctx.restore();
   }
-  return cart;
+  pieces = pieces.filter(p=>p.a>0 && p.y < innerHeight+40);
+  requestAnimationFrame(tick);
 }
-function updateAll() {
-  const cart = getCart();
-  for (const item of ITEMS) {
-    const qty = clampInt(inputs[item.key].value);
-    document.getElementById("sub_" + item.key).textContent = yen(item.price * qty);
-  }
-  const totalCount = cart.reduce((a,c)=>a+c.qty, 0);
-  const totalPrice = cart.reduce((a,c)=>a+c.subtotal, 0);
-  document.getElementById("footCount").textContent = totalCount.toLocaleString("ja-JP");
-  document.getElementById("footTotal").textContent = yen(totalPrice);
-  document.getElementById("badgeCount").textContent = `${totalCount.toLocaleString("ja-JP")} 点`;
-  document.getElementById("grandTotal").textContent = yen(totalPrice);
+tick();
 
-  const ul = document.getElementById("summaryList");
-  ul.innerHTML = "";
-  if (cart.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = "購入品はまだありません。";
-    ul.appendChild(li);
-  } else {
-    // 下部リスト：固定幅カラムで数量・金額をピシッと揃える
-    for (const row of cart) {
-      const li   = document.createElement("li");
-      const rowDiv = document.createElement("div");
-      rowDiv.className = "summary-row";
-
-      const name  = document.createElement("span");
-      name.className = "summary-name";
-      name.textContent = row.name;
-
-      const symX  = document.createElement("span");
-      symX.className = "summary-sym";
-      symX.textContent = "×";
-
-      const qty   = document.createElement("span");
-      qty.className = "summary-qty mono";
-      qty.textContent = row.qty.toLocaleString("ja-JP"); // 1〜999想定
-
-      const symEq = document.createElement("span");
-      symEq.className = "summary-sym";
-      symEq.textContent = "＝";
-
-      const amt   = document.createElement("span");
-      amt.className = "summary-amt mono";
-      amt.textContent = yen(row.subtotal); // 「¥9,999,999」まで想定
-
-      rowDiv.append(name, symX, qty, symEq, amt);
-      li.appendChild(rowDiv);
-      ul.appendChild(li);
-    }
-  }
+/* ---------------- 集計/保存/Tweet ---------------- */
+function countByRarity(items){
+  const c={R:0,SR:0,SSR:0,UR:0}; for(const it of items) c[it.rarity]++; return c;
 }
-updateAll();
-
-/* ---- 操作ボタン ---- */
-document.getElementById("btnReset").addEventListener("click", () => {
-  for (const k in inputs) inputs[k].value = "";
-  updateAll();
+document.getElementById("btnSave").addEventListener("click", async ()=>{
+  const target = document.getElementById("card");
+  const canvas = await html2canvas(target,{scale:2,backgroundColor:"#0c0f1a"});
+  const a = document.createElement("a");
+  a.download = `gacha_result_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.png`;
+  a.href = canvas.toDataURL("image/png"); a.click();
 });
-document.getElementById("btnSample").addEventListener("click", () => {
-  const preset = { tshirt_white:1, penlight:1, rubber_band_day1:2, gachaA:4, cap:1 };
-  for (const k in inputs) inputs[k].value = preset[k] ?? "";
-  updateAll();
-});
-
-/* ---- 画像保存（枠= #resultCard のみ） ---- */
-document.getElementById("btnSaveImg").addEventListener("click", async () => {
-  const target = document.getElementById("resultCard");
-  const canvas = await html2canvas(target, { scale: 2, backgroundColor: "#ffffff" });
-  const link = document.createElement("a");
-  link.download = `oishi-ssa-goods_${new Date().toISOString().slice(0,10)}.png`;
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-});
-
-/* ---- Tweet（合計点数と合計金額のみ） ---- */
-document.getElementById("btnTweet").addEventListener("click", () => {
-  const cart = getCart();
-  const totalCount = cart.reduce((a,c)=>a+c.qty, 0);
-  const totalPrice = cart.reduce((a,c)=>a+c.subtotal, 0);
-  const textLine = `購入予定：${totalCount}点 / 合計 ${yen(totalPrice)}`;
-  const hashtags = ["オーイシマサヨシ","オーイシSSA"].join(",");
-  const text = encodeURIComponent(textLine);
+document.getElementById("btnTweet").addEventListener("click", ()=>{
+  const text = encodeURIComponent(headline.textContent + " #ガチャ #カードめくり");
   const url  = encodeURIComponent(location.href);
-  const intent = `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=${hashtags}`;
-  window.open(intent, "_blank");
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`,"_blank");
+});
+
+/* ---------------- ボタン ---------------- */
+document.getElementById("btnSingle").addEventListener("click", ()=>{
+  showResults([drawOne()]);
+});
+document.getElementById("btnTen").addEventListener("click", ()=>{
+  showResults(drawTen());
+});
+document.getElementById("btnReset").addEventListener("click", ()=>{
+  grid.innerHTML = ""; badge.textContent = "0 回"; headline.textContent = "結果がここに表示されます";
+  pieces.length = 0; // 紙吹雪クリア
+});
+document.getElementById("btnFlipAll").addEventListener("click", ()=>{
+  Array.from(grid.children).forEach(c=>c.classList.add("open"));
+  btnFlipAll.disabled = true;
 });
 </script>
 </body>
