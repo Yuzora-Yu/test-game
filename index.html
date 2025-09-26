@@ -150,6 +150,15 @@
   .rates table{ width:100%; border-collapse:collapse; background:#0b0f1b; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
   .rates th, .rates td{ padding:8px; border-bottom:1px solid rgba(255,255,255,.06); text-align:left; }
   .rates th{ background:#131a2b; position: sticky; top: 0; z-index: 1; }
+
+  .offscreen{
+  position: fixed;
+  left: -99999px; top: 0;
+  width: var(--w);
+  background: #0f1424;
+  padding: 14px;
+  border-radius: 12px;
+}
 </style>
 <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -227,18 +236,18 @@
     <span class="close" id="closeAlbum">×</span>
     <h2>アルバム / コレクション</h2>
     <div id="albumStats" style="margin:6px 0 10px;color:#b9c4d4;"></div>
-    <div class="toolbar" style="margin:8px 0 10px;">
-      <select id="albumFilter">
-        <option value="ALL">すべて</option>
-        <option value="EX">EX</option>
-        <option value="UR">UR</option>
-        <option value="SSR">SSR</option>
-        <option value="SR">SR</option>
-        <option value="R">R</option>
-      </select>
-      <button class="btn" id="btnAlbumShot">アルバムを画像保存</button>
-      <button class="btn" id="btnResetAlbum">進捗リセット（端末内）</button>
-    </div>
+<div class="toolbar" style="margin:8px 0 10px;">
+  <select id="albumFilter">
+    <option value="ALL">すべて</option>
+    <option value="EX">EX</option>
+    <option value="UR">UR</option>
+    <option value="SSR">SSR</option>
+    <option value="SR">SR</option>
+    <option value="R">R</option>
+  </select>
+  <button class="btn" id="btnAlbumShotAll">フルアルバム画像保存（長尺）</button>
+  <button class="btn" id="btnResetAlbum">進捗リセット（端末内）</button>
+</div>
     <div class="grid" id="albumGrid"></div>
   </div>
 </div>
@@ -585,9 +594,12 @@ document.getElementById("btnReset").addEventListener("click", ()=>{
   clearResultsView(); btnSkipAll.style.display = "none";
 });
 document.getElementById("btnAlbum").addEventListener("click", ()=>{
-  renderAlbum(document.getElementById("albumFilter").value);
-  albumModal.classList.add("show");
+  albumModal.classList.add("show");      // 先に可視化
+  requestAnimationFrame(()=>{             // レイアウト確定を1フレ待つ
+    renderAlbum(document.getElementById("albumFilter").value);
+  });
 });
+
 
 /* ---- 排出確率モーダル（EXは？？？？？表示） ---- */
 const modal = document.getElementById("modal");
@@ -671,6 +683,7 @@ function renderAlbum(filter="ALL"){
       <div style="font-size:11px;color:#9fb1c8;margin-top:6px;">${owned ? `所持枚数：${ct}` : `未所持`}</div>
     `;
     grid.appendChild(el);
+    applyMarqueeIfOverflow(el);
   }
 }
 /* アルバムUIとスクショ */
@@ -684,13 +697,105 @@ document.getElementById("btnResetAlbum").addEventListener("click", ()=>{
     renderAlbum(document.getElementById("albumFilter").value);
   }
 });
-document.getElementById("btnAlbumShot").addEventListener("click", async ()=>{
-  const target = document.getElementById("albumSheet"); // モーダルの中身を撮る
-  const canvas = await html2canvas(target,{scale:2,backgroundColor:"#0f1424"});
-  const a = document.createElement("a");
-  a.download = `oishi_album_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.png`;
-  a.href = canvas.toDataURL("image/png"); a.click();
-});
+  /* ===== アルバム：フル画像保存（長尺・分割対応。画面外DOMを撮影） ===== */
+
+/** アルバム全件の“撮影用”DOMをオフスクリーンに構築（可視扱いのまま左へ退避） */
+function buildAlbumCapture(filter="ALL"){
+  const { st, totalKinds, haveKinds, rate } = collectionStats();
+  const list = POOL.filter(p => filter==="ALL" ? true : p.rarity===filter);
+
+  const host = document.createElement("div");
+  host.className = "offscreen";
+  host.id = "albumCaptureHost";
+  host.innerHTML = `
+    <h2 style="margin:0 0 6px;font-size:18px;">アルバム / コレクション（フル）</h2>
+    <div style="margin:6px 0 10px;color:#b9c4d4;">
+      総カード種 ${haveKinds}/${totalKinds}（${rate}%）｜総枚数 ${st.pulls}｜プレイ回数 ${st.sessions}
+    </div>
+    <div class="grid" id="albumCaptureGrid"></div>
+  `;
+  document.body.appendChild(host);
+
+  const grid = host.querySelector("#albumCaptureGrid");
+
+  for(const p of list){
+    const owned = !!st.items[p.name]?.count;
+    const ct = st.items[p.name]?.count || 0;
+    const title = (p.rarity==="EX" && !owned) ? "？？？？？" : p.name;
+
+    const el = document.createElement("div");
+    el.className = `item ${p.rarity}`;
+    el.style.opacity = owned ? 1 : 0.55;
+    el.innerHTML = `
+      <div class="icon">${p.icon || "🎴"}</div>
+      <div class="name">[${p.rarity}] ${title}</div>
+      <div class="rarityBar"></div>
+      <div style="font-size:11px;color:#9fb1c8;margin-top:6px;">
+        ${owned ? `所持枚数：${ct}` : `未所持`}
+      </div>
+    `;
+    grid.appendChild(el);
+    applyMarqueeIfOverflow(el); // 長い名前は無限スクロール
+  }
+
+  return host;
+}
+
+/** 高さ上限を超える場合に分割PNGで保存（モバイル/ブラウザ上限対策） */
+async function saveLongElementAsPNGs(el, filePrefix){
+  const MAX_H = 12000; // 端末やブラウザのcanvas制限の安全圏
+  const rect = el.getBoundingClientRect();
+  const totalH = Math.ceil(el.scrollHeight || rect.height);
+  const totalW = Math.ceil(el.scrollWidth  || rect.width);
+
+  if(totalH <= MAX_H){
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor:"#0f1424" });
+    const a = document.createElement("a");
+    a.download = `${filePrefix}.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+    return;
+  }
+
+  let offset = 0, idx = 1;
+  while(offset < totalH){
+    const h = Math.min(MAX_H, totalH - offset);
+    const canvas = await html2canvas(el, {
+      scale: 2, backgroundColor:"#0f1424",
+      x: 0, y: offset, width: totalW, height: h,
+      windowWidth: totalW, windowHeight: h
+    });
+    const a = document.createElement("a");
+    a.download = `${filePrefix}_part${String(idx).padStart(2,"0")}.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+    offset += h; idx++;
+  }
+}
+
+/** 入口：フルアルバム画像保存（長尺） */
+async function saveFullAlbumImage(){
+  const filter = document.getElementById("albumFilter")?.value || "ALL";
+  const captureEl = buildAlbumCapture(filter);
+  try{
+    // レイアウト＆マルキーDOMの確定を2フレ待ち
+    await new Promise(r=> requestAnimationFrame(()=> requestAnimationFrame(r)));
+
+    await saveLongElementAsPNGs(
+      captureEl,
+      `oishi_album_full_${filter.toLowerCase()}_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}`
+    );
+  }catch(e){
+    console.error(e);
+    alert("アルバム画像の保存に失敗しました。端末の空き容量やブラウザを確認してください。");
+  }finally{
+    captureEl.remove();
+  }
+}
+
+/* ボタン紐付け（旧btnAlbumShotの代わり） */
+document.getElementById("btnAlbumShotAll")?.addEventListener("click", saveFullAlbumImage);
+
 </script>
 </body>
 </html>
