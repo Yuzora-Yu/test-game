@@ -40,10 +40,29 @@
     display:grid; place-items:center;
   }
   #stage .hint{ position:absolute; bottom:10px; left:0; right:0; text-align:center; color:#c7d2e4; opacity:.8; font-size:12px; }
-  /* 10連用：すべてめくるボタン（ステージ右上／枠内） */
-  #btnSkipAll{
-    position:absolute; top:10px; right:10px; z-index:5; display:none; font-size:12px;
-  }
+  #btnSkipAll{ position:absolute; top:10px; right:10px; z-index:5; display:none; font-size:12px; }
+
+  /* 追加：UR用のド派手演出パーツ */
+  .beam{ position:absolute; inset:-20% 35% -40% 35%; opacity:0; pointer-events:none;
+         background: linear-gradient(180deg, rgba(255,255,255,.0) 0%, rgba(255,255,255,.85) 40%, rgba(255,255,255,.0) 100%),
+                     repeating-linear-gradient( to bottom,
+                       rgba(255,0,120,.35),rgba(255,0,120,.35) 8px,
+                       rgba(255,170,0,.35) 8px, rgba(255,170,0,.35) 16px,
+                       rgba(0,220,255,.35) 16px, rgba(0,220,255,.35) 24px,
+                       rgba(0,230,174,.35) 24px, rgba(0,230,174,.35) 32px);
+         filter: blur(2px); mix-blend-mode: screen; transform: scaleY(0.3); }
+  .beam.show{ animation: beamRise .8s ease-out forwards; }
+  @keyframes beamRise{ 0%{opacity:0; transform:scaleY(0.3)} 60%{opacity:1} 100%{opacity:1; transform:scaleY(1)} }
+
+  .rays{ position:absolute; inset:-20% -20%; opacity:0; pointer-events:none;
+         background: conic-gradient(from 0deg,
+           rgba(255,216,112,.0) 0deg, rgba(255,216,112,.7) 6deg, rgba(255,216,112,.0) 12deg,
+           rgba(0,227,174,.0) 12deg, rgba(0,227,174,.7) 18deg, rgba(0,227,174,.0) 24deg,
+           rgba(0,212,255,.0) 24deg, rgba(0,212,255,.7) 30deg, rgba(0,212,255,.0) 36deg);
+         mix-blend-mode: screen; filter: blur(1px); }
+  .rays.show{ animation: raysSpin 1.6s linear infinite, raysFade .25s ease-out forwards; }
+  @keyframes raysSpin{ to{ transform: rotate(360deg); } }
+  @keyframes raysFade{ from{opacity:0} to{opacity:.9} }
 
   /* カード（3Dめくり） */
   .card{ width:min(280px,70vw); height:min(180px,45vw); perspective: 1000px; }
@@ -59,11 +78,11 @@
 
   /* レア度グロー（表面） */
   .glow{ position:absolute; inset:-2px; border-radius:16px; pointer-events:none; mix-blend-mode:screen; opacity:.85; }
-  .R  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(86,204,242,.30), transparent 60%);}
-  .SR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(193,168,255,.38), transparent 60%);}
+  .R  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(86,204,242,.30), transparent 60%); }
+  .SR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(193,168,255,.38), transparent 60%); }
   .SSR.glowPulse, .UR.glowPulse { animation: glow 1.8s ease-in-out infinite; }
-  .SSR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(255,216,112,.45), transparent 60%);}
-  .UR  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(0,227,174,.50), transparent 60%);}
+  .SSR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(255,216,112,.45), transparent 60%); }
+  .UR  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(0,227,174,.55), transparent 60%); }
   @keyframes glow{ 0%,100%{opacity:.7} 50%{opacity:1} }
 
   /* 特殊演出（表にする前） */
@@ -88,7 +107,7 @@
   .SSR .rarityBar{ background: linear-gradient(90deg,#ffd76f,#ff8a00); box-shadow:0 0 16px rgba(255,200,64,.6); }
   .UR .rarityBar{ background: linear-gradient(90deg,#9be15d,#00e3ae); box-shadow:0 0 18px rgba(0,227,174,.7); }
 
-  /* ▼枠外の操作エリア（保存/Tweet/注意書き） */
+  /* 枠外の操作エリア */
   .postActions{ width:var(--w); margin:10px auto 0; }
   .postActions .toolbar{ margin-top:10px; }
   .note{ color:#9fb1c8; font-size:12px; margin:6px 0 0; }
@@ -120,6 +139,11 @@
 
 <main style="width:var(--w); margin:auto;">
   <div id="stage" aria-label="演出ステージ">
+    <!-- UR演出パーツ -->
+    <div class="beam" id="beam"></div>
+    <div class="rays" id="rays"></div>
+    <canvas id="spark" style="position:absolute;inset:0;pointer-events:none"></canvas>
+
     <div id="stageHost"></div>
     <button id="btnSkipAll" class="btn">すべてめくる</button>
     <div class="flash" id="flash"></div>
@@ -135,7 +159,7 @@
     <div class="grid" id="grid"></div>
   </section>
 
-  <!-- ▼枠外のボタン群（画像保存・Tweet・注意書き） -->
+  <!-- 枠外のボタン群 -->
   <div class="postActions">
     <div class="toolbar">
       <button class="btn" id="btnSave">結果を画像保存</button>
@@ -164,7 +188,7 @@
 </div>
 
 <script>
-/* ---------------- ラインナップ＆確率 ---------------- */
+/* ---------------- ラインナップ＆確率（あなたの最新版を反映） ---------------- */
 const RARITY = {
   "R":   { rate: 0.52, color:"#56ccf2", name:"R" },
   "SR":  { rate: 0.35, color:"#c1a8ff", name:"SR" },
@@ -209,10 +233,8 @@ const rankIdx = r => rankOrder.indexOf(r);
 
 /* -------------- 抽選 -------------- */
 function drawOne(){
-  // 1) レア度抽選（指定確率）
   const rEntry = pickWeighted(Object.entries(RARITY).map(([k,v])=>({key:k, weight:v.rate})), "weight");
   const rarity = rEntry.key;
-  // 2) 同レア内から一様抽選
   const bucket = POOL.filter(p=>p.rarity===rarity);
   return bucket[Math.floor(Math.random()*bucket.length)];
 }
@@ -225,6 +247,12 @@ const hint = document.getElementById("hint");
 const flash = document.getElementById("flash");
 const shakeHost = document.getElementById("shakeHost");
 const btnSkipAll = document.getElementById("btnSkipAll");
+const beam = document.getElementById("beam");
+const rays = document.getElementById("rays");
+const spark = document.getElementById("spark");
+const spctx = spark.getContext("2d");
+function resizeSpark(){ spark.width = spark.clientWidth; spark.height = spark.clientHeight; }
+addEventListener("resize", resizeSpark); resizeSpark();
 
 let queue = [];       // 今回の結果（10連/単発）
 let pointer = 0;      // 現在のインデックス
@@ -250,17 +278,55 @@ function createCard(item){
   return card;
 }
 
-function playSpecialBeforeReveal(rarity){
-  if(rarity==="SSR" || rarity==="UR"){
-    flash.classList.add("show");
-    shakeHost.classList.add("shake");
-    setTimeout(()=>flash.classList.remove("show"), 220);
-    setTimeout(()=>shakeHost.classList.remove("shake"), 620);
-    return 220; // 開くまでの遅延
+/* --- 特殊演出（SSR/UR） --- */
+function flashShake(){
+  flash.classList.add("show");
+  shakeHost.classList.add("shake");
+  setTimeout(()=>flash.classList.remove("show"), 220);
+  setTimeout(()=>shakeHost.classList.remove("shake"), 620);
+}
+function urMegaFX(){ // UR専用：ビーム＋レイ＋星粒
+  beam.classList.add("show");
+  rays.classList.add("show");
+  // 星粒
+  const N = 180;
+  const cx = spark.width/2, cy = spark.height*0.48;
+  const parts = [];
+  for(let i=0;i<N;i++){
+    parts.push({
+      x: cx, y: cy,
+      vx: (Math.random()*2-1) * (3+Math.random()*4),
+      vy: (Math.random()*2-1) * (3+Math.random()*4) - 2,
+      life: 50 + Math.random()*40,
+      size: 1.5 + Math.random()*2.5,
+      color: ["#00e3ae","#ffd870","#00d4ff","#ffffff"][i%4]
+    });
   }
+  let alive = true;
+  (function tick(){
+    if(!alive) return;
+    spctx.clearRect(0,0,spark.width,spark.height);
+    for(const p of parts){
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.03; p.life-=1;
+      spctx.globalAlpha = Math.max(p.life/90,0);
+      spctx.fillStyle = p.color;
+      spctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    if(parts.every(p=>p.life<=0)){ alive=false; spctx.clearRect(0,0,spark.width,spark.height); beam.classList.remove("show"); rays.classList.remove("show"); return; }
+    requestAnimationFrame(tick);
+  })();
+}
+
+function playSpecialBeforeReveal(rarity){
+  if(rarity==="UR"){ flashShake(); urMegaFX(); return 250; }
+  if(rarity==="SSR"){ flashShake(); return 220; }
   return 0;
 }
 
+/* --- 進行制御 --- */
+function clearResultsView(){
+  grid.innerHTML = ""; badge.textContent = "0 回"; headline.textContent = "結果がここに表示されます";
+}
 function showNextCard(){
   if(pointer >= queue.length){
     // 完走
@@ -278,7 +344,6 @@ function showNextCard(){
   stageHost.appendChild(currentCard);
   hint.textContent = "タップでめくる";
   phase = "closed";
-  // 10連中のみ表示
   btnSkipAll.style.display = (queue.length>1) ? "inline-block" : "none";
 }
 
@@ -296,41 +361,40 @@ stage.addEventListener("click", ()=>{
         currentCard.querySelector(".front").classList.add("glowPulse");
       }
       phase = "opened";
-      hint.textContent = (pointer < queue.length-1) ? "もう一度タップで次へ" : "もう一度タップで結果一覧へ";
+      // 単発はここで即フィニッシュ（結果一覧へ）
+      if(queue.length === 1){
+        setTimeout(()=>{ pointer = 1; showNextCard(); }, 450);
+      }else{
+        hint.textContent = (pointer < queue.length-1) ? "もう一度タップで次へ" : "もう一度タップで結果一覧へ";
+      }
       lockTap = false;
     }, delay);
   } else if(phase === "opened"){
-    // 2nd tap: 次のカードへ
+    // 2nd tap: 次のカードへ（10連）
     pointer++;
     showNextCard();
   }
 });
 
 btnSkipAll.addEventListener("click", (e)=>{
-  e.stopPropagation(); // ステージのタップ伝播を防止
+  e.stopPropagation();
   if(!inProgress) return;
-  // 残り全てスキップして一覧へ
-  inProgress = false;
-  phase = "idle";
-  lastResults = queue.slice();
-  showAllResults(queue);
-  hint.textContent = "";
-  btnSkipAll.style.display = "none";
+  inProgress = false; phase = "idle"; lastResults = queue.slice();
+  showAllResults(queue); hint.textContent = ""; btnSkipAll.style.display = "none";
 });
 
+/* --- 実行ボタン --- */
 function runTen(){
   if(inProgress) return;
+  clearResultsView();            // ★ 新規開始時に下をクリア
   queue = drawN(10);
-  pointer = 0;
-  inProgress = true;
-  showNextCard();
+  pointer = 0; inProgress = true; showNextCard();
 }
 function runSingle(){
   if(inProgress) return;
+  clearResultsView();            // ★ 新規開始時に下をクリア
   queue = drawN(1);
-  pointer = 0;
-  inProgress = true;
-  showNextCard();
+  pointer = 0; inProgress = true; showNextCard();
 }
 
 /* -------------- 最終結果カード -------------- */
@@ -379,8 +443,7 @@ document.getElementById("btnTweet").addEventListener("click", ()=>{
     `#オーイシマサヨシ #オーイシSSA #オーイシガチャ`,
     location.href
   ].join("\n");
-  const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-  window.open(intent,"_blank");
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,"_blank");
 });
 
 /* -------------- 上部ボタン -------------- */
@@ -389,8 +452,7 @@ document.getElementById("btnSingle").addEventListener("click", runSingle);
 document.getElementById("btnReset").addEventListener("click", ()=>{
   inProgress = false; queue = []; pointer = 0; phase = "idle"; lockTap = false;
   stageHost.innerHTML = ""; hint.textContent = "";
-  grid.innerHTML = ""; badge.textContent = "0 回"; headline.textContent = "結果がここに表示されます";
-  btnSkipAll.style.display = "none";
+  clearResultsView(); btnSkipAll.style.display = "none";
 });
 
 /* -------------- 排出確率モーダル -------------- */
