@@ -43,21 +43,9 @@
   #btnSkipAll{ position:absolute; top:10px; right:10px; z-index:5; display:none; font-size:12px; }
 
   /* 旧UR演出（未使用だが残置） */
-  .beam{ position:absolute; inset:-20% 35% -40% 35%; opacity:0; pointer-events:none;
-         background: linear-gradient(180deg, rgba(255,255,255,.0) 0%, rgba(255,255,255,.85) 40%, rgba(255,255,255,.0) 100%),
-                     repeating-linear-gradient( to bottom,
-                       rgba(255,0,120,.35),rgba(255,0,120,.35) 8px,
-                       rgba(255,170,0,.35) 8px, rgba(255,170,0,.35) 16px,
-                       rgba(0,220,255,.35) 16px, rgba(0,220,255,.35) 24px,
-                       rgba(0,230,174,.35) 24px, rgba(0,230,174,.35) 32px);
-         filter: blur(2px); mix-blend-mode: screen; transform: scaleY(0.3); }
+  .beam{ position:absolute; inset:-20% 35% -40% 35%; opacity:0; pointer-events:none; }
   .beam.show{ display:none !important; }
-  .rays{ position:absolute; inset:-20% -20%; opacity:0; pointer-events:none;
-         background: conic-gradient(from 0deg,
-           rgba(255,216,112,.0) 0deg, rgba(255,216,112,.7) 6deg, rgba(255,216,112,.0) 12deg,
-           rgba(0,227,174,.0) 12deg, rgba(0,227,174,.7) 18deg, rgba(0,227,174,.0) 24deg,
-           rgba(0,212,255,.0) 24deg, rgba(0,212,255,.7) 30deg, rgba(0,212,255,.0) 36deg);
-         mix-blend-mode: screen; filter: blur(1px); }
+  .rays{ position:absolute; inset:-20% -20%; opacity:0; pointer-events:none; }
   .rays.show{ display:none !important; }
 
   /* カード（3Dめくり） */
@@ -81,55 +69,39 @@
     .name.marquee .track{ animation:none; }
   }
 
-  /* レア度グロー（表面） */
+  /* レア度グロー */
   .glow{ position:absolute; inset:-2px; border-radius:16px; pointer-events:none; mix-blend-mode:screen; opacity:.85; }
   .R  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(86,204,242,.30), transparent 60%); }
   .SR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(193,168,255,.38), transparent 60%); }
-  .SSR.glowPulse, .UR.glowPulse, .EX.glowPulse { animation: glow 1.8s ease-in-out infinite; }
   .SSR .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(255,216,112,.45), transparent 60%); }
   .UR  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(0,227,174,.65), transparent 60%); }
   .EX  .glow{ background: radial-gradient(80% 60% at 50% -10%, rgba(255,64,96,.55), transparent 60%); }
+  .SSR.glowPulse, .UR.glowPulse, .EX.glowPulse { animation: glow 1.8s ease-in-out infinite; }
   @keyframes glow{ 0%,100%{opacity:.7} 50%{opacity:1} }
 
-  /* 特殊演出（表にする前） */
+  /* 特殊演出（表にする前）＋フリーズ演出 */
   .flash{ position:absolute; inset:0; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.95), transparent 60%); opacity:0; pointer-events:none; }
   .flash.show{ animation: flash .22s ease forwards; }
   @keyframes flash{ from{opacity:0} to{opacity:1} }
   #shakeHost.shake{ animation:shake .6s cubic-bezier(.36,.07,.19,.97) both }
   @keyframes shake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(2px,0,0)}30%,50%,70%{transform:translate3d(-4px,0,0)}40%,60%{transform:translate3d(4px,0,0)}}
 
-  /* ▼UR/EX フリーズ演出（画面全体） */
-  .freezeOverlay{
-    position:fixed; inset:0; z-index:20; pointer-events:none; opacity:0;
-  }
+  .freezeOverlay{ position:fixed; inset:0; z-index:20; pointer-events:none; opacity:0; }
   .freezeWhite{ background:#fff; }
   .freezeScan{
-    background:
-      repeating-linear-gradient(
-        to bottom,
-        rgba(0,0,0,.0) 0px,
-        rgba(0,0,0,.0) 2px,
-        rgba(0,0,0,.06) 3px,
-        rgba(0,0,0,.06) 4px
-      );
+    background: repeating-linear-gradient(to bottom, rgba(0,0,0,.0) 0px, rgba(0,0,0,.0) 2px, rgba(0,0,0,.06) 3px, rgba(0,0,0,.06) 4px);
     mix-blend-mode: multiply;
   }
   .freezeChromatic{
-    background:
-      radial-gradient(1200px 800px at 50% 40%,
-        rgba(255,255,255,.0) 0%, rgba(255,255,255,.0) 55%,
-        rgba(255,0,120,.18) 70%, rgba(0,220,255,.18) 82%,
-        rgba(255,255,255,.0) 100%);
+    background: radial-gradient(1200px 800px at 50% 40%, rgba(255,255,255,.0) 0%, rgba(255,255,255,.0) 55%, rgba(255,0,120,.18) 70%, rgba(0,220,255,.18) 82%, rgba(255,255,255,.0) 100%);
     mix-blend-mode: screen; filter: blur(2px);
   }
   @keyframes whiteHold { 0%{opacity:0} 12%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
   @keyframes scanPulse { 0%{opacity:0} 15%{opacity:.8} 70%{opacity:.8} 100%{opacity:0} }
   @keyframes chromaPulse{ 0%{opacity:0} 20%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
-  @media (prefers-reduced-motion: reduce){
-    .freezeOverlay{ display:none; }
-  }
+  @media (prefers-reduced-motion: reduce){ .freezeOverlay{ display:none; } }
 
-  /* 最終結果カード（保存対象） */
+  /* 最終結果カード */
   #resultCard{ margin-top:16px; background: var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.26); }
   .summary{ display:flex; align-items:center; gap:10px; }
   .badge{ background:#e0133c; padding:4px 10px; border-radius:999px; font-weight:700; }
@@ -145,26 +117,26 @@
   .UR .rarityBar{ background: linear-gradient(90deg,#9be15d,#00e3ae); box-shadow:0 0 18px rgba(0,227,174,.7); }
   .EX .rarityBar{ background: linear-gradient(90deg,#ff4d6d,#ff8a00); box-shadow:0 0 18px rgba(255,64,96,.65); }
 
-  /* ▼UR/EXカード用：常時キラ粒Canvas */
+  /* UR/EXカード用：常時キラ粒Canvas */
   .sparkle { position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.95; }
 
-  /* 枠外の操作エリア */
+  /* 枠外 */
   .postActions{ width:var(--w); margin:10px auto 0; }
   .postActions .toolbar{ margin-top:10px; }
   .note{ color:#9fb1c8; font-size:12px; margin:6px 0 0; }
 
-  /* ▼EXが1枚でもある回は結果カード赤モード */
+  /* EX排出回は結果カード赤モード */
   #resultCard.exMode{
     background: linear-gradient(180deg, rgba(255,80,112,.14), rgba(255,80,112,.06));
     border-color: rgba(255,120,140,.28);
     box-shadow: 0 12px 40px rgba(255,64,96,.22) inset, 0 8px 26px rgba(255,64,96,.28);
   }
 
-  /* モーダル（排出確率） */
+  /* モーダル（排出確率/アルバム） */
   .modal{ position:fixed; inset:0; display:none; place-items:center; background: rgba(0,0,0,.55); z-index:10; }
   .modal.show{ display:grid; }
   .sheet{
-    width:min(760px, 94vw);
+    width:min(900px, 94vw);
     max-height: 85vh;
     overflow:auto;
     background:#0f1424; border:1px solid var(--border);
@@ -188,6 +160,7 @@
   <div class="toolbar">
     <button class="btn" id="btnSingle">単発（1回）</button>
     <button class="btn primary" id="btnTen">10連</button>
+    <button class="btn" id="btnAlbum">アルバム</button>
     <button class="btn" id="btnReset">クリア</button>
     <button class="btn" id="btnRates">排出確率</button>
   </div>
@@ -195,12 +168,11 @@
 
 <main style="width:var(--w); margin:auto;">
   <div id="stage" aria-label="演出ステージ">
-    <!-- （旧）UR演出パーツ（互換のため残置） -->
     <div class="beam" id="beam"></div>
     <div class="rays" id="rays"></div>
     <canvas id="spark" style="position:absolute;inset:0;pointer-events:none"></canvas>
 
-    <!-- 新：フリーズ演出オーバーレイ -->
+    <!-- フリーズ演出 -->
     <div class="freezeOverlay freezeWhite" id="freezeWhite"></div>
     <div class="freezeOverlay freezeScan"  id="freezeScan"></div>
     <div class="freezeOverlay freezeChromatic" id="freezeChroma"></div>
@@ -211,7 +183,7 @@
     <div class="hint" id="hint"></div>
   </div>
 
-  <!-- 最終結果（画像保存対象） -->
+  <!-- 最終結果 -->
   <section id="resultCard" tabindex="-1">
     <div class="summary">
       <span class="badge" id="badge">0 回</span>
@@ -233,7 +205,7 @@
 
 <!-- 排出確率モーダル -->
 <div class="modal" id="modal">
-  <div class="sheet">
+  <div class="sheet" id="ratesSheet">
     <span class="close" id="closeModal">×</span>
     <h2>排出確率 / ラインナップ</h2>
     <div class="rates">
@@ -246,6 +218,28 @@
         <tbody id="listBody"></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- アルバム（コレクション） -->
+<div class="modal" id="albumModal">
+  <div class="sheet" id="albumSheet">
+    <span class="close" id="closeAlbum">×</span>
+    <h2>アルバム / コレクション</h2>
+    <div id="albumStats" style="margin:6px 0 10px;color:#b9c4d4;"></div>
+    <div class="toolbar" style="margin:8px 0 10px;">
+      <select id="albumFilter">
+        <option value="ALL">すべて</option>
+        <option value="EX">EX</option>
+        <option value="UR">UR</option>
+        <option value="SSR">SSR</option>
+        <option value="SR">SR</option>
+        <option value="R">R</option>
+      </select>
+      <button class="btn" id="btnAlbumShot">アルバムを画像保存</button>
+      <button class="btn" id="btnResetAlbum">進捗リセット（端末内）</button>
+    </div>
+    <div class="grid" id="albumGrid"></div>
   </div>
 </div>
 
@@ -282,7 +276,7 @@ const POOL = [
 
   { name:"オーイシマサヨシ", rarity:"UR", icon:"🧑‍🎤" },
 
-  /* ★ EX（0.5%）：義務わらのマサヨシ */
+  /* ★ EX（0.5%） */
   { name:"義務わらのマサヨシ", rarity:"EX", icon:"👑" },
 ];
 
@@ -313,8 +307,6 @@ const hint = document.getElementById("hint");
 const flash = document.getElementById("flash");
 const shakeHost = document.getElementById("shakeHost");
 const btnSkipAll = document.getElementById("btnSkipAll");
-const beam = document.getElementById("beam");
-const rays = document.getElementById("rays");
 const spark = document.getElementById("spark");
 const spctx = spark.getContext("2d");
 function resizeSpark(){ spark.width = spark.clientWidth; spark.height = spark.clientHeight; }
@@ -363,8 +355,6 @@ function flashShake(stronger=false){
     shakeHost.style.animationDuration = "";
   }, stronger ? 820 : 620);
 }
-
-/* 紙吹雪（sparkキャンバスで派手に） */
 function confettiBurst(){
   const N = 260;
   const cx = spark.width/2, cy = spark.height*0.46;
@@ -389,33 +379,19 @@ function confettiBurst(){
       spctx.fillStyle = p.color;
       spctx.fillRect(p.x, p.y, p.size, p.size);
     }
-    if(parts.every(p=>p.life<=0)){
-      alive=false; spctx.clearRect(0,0,spark.width,spark.height);
-      return;
-    }
+    if(parts.every(p=>p.life<=0)){ alive=false; spctx.clearRect(0,0,spark.width,spark.height); return; }
     requestAnimationFrame(tick);
   })();
 }
-
-/* 新：UR/EX共通の“フリーズ風”演出 */
 function freezeBurstFX(){
   freezeWhite.style.animation = "whiteHold 1.2s ease forwards";
   freezeScan.style.animation  = "scanPulse 1.2s ease forwards";
   freezeChroma.style.animation= "chromaPulse 1.2s ease forwards";
-
   flashShake(true);
   confettiBurst();
-
-  setTimeout(()=>{
-    freezeWhite.style.animation = "";
-    freezeScan.style.animation  = "";
-    freezeChroma.style.animation= "";
-  }, 1250);
-
-  return 900; // カードオープンまでの待機
+  setTimeout(()=>{ freezeWhite.style.animation = ""; freezeScan.style.animation  = ""; freezeChroma.style.animation= ""; }, 1250);
+  return 900;
 }
-
-/* 置換：UR/EXはフリーズ、SSRは軽フラッシュ */
 function playSpecialBeforeReveal(rarity){
   if(rarity==="UR" || rarity==="EX"){ return freezeBurstFX(); }
   if(rarity==="SSR"){ flashShake(); return 220; }
@@ -428,7 +404,6 @@ function clearResultsView(){
   grid.innerHTML = ""; badge.textContent = "0 回"; headline.textContent = "結果がここに表示されます";
   document.getElementById("resultCard").classList.remove("exMode");
 }
-
 function showNextCard(){
   if(pointer >= queue.length){
     inProgress = false; phase = "idle";
@@ -446,11 +421,9 @@ function showNextCard(){
   phase = "closed";
   btnSkipAll.style.display = (queue.length>1) ? "inline-block" : "none";
 }
-
 stage.addEventListener("click", ()=>{
   if(!inProgress || !currentCard) return;
   if(lockTap) return;
-
   if(phase === "closed"){
     lockTap = true;
     const delay = playSpecialBeforeReveal(currentItem.rarity);
@@ -471,23 +444,18 @@ stage.addEventListener("click", ()=>{
     pointer++; showNextCard();
   }
 });
-
-/* ---- すべてめくる：演出→一覧＋フォーカス ---- */
 btnSkipAll.addEventListener("click", (e)=>{
   e.stopPropagation();
   if(!inProgress) return;
-
   stageHost.innerHTML = "";
   currentCard = null;
   hint.textContent = "";
-
   const hasEX  = queue.some(x=>x.rarity==="EX");
   const hasUR  = !hasEX && queue.some(x=>x.rarity==="UR");
   const hasSSR = !hasEX && !hasUR && queue.some(x=>x.rarity==="SSR");
   let d = 0;
   if(hasEX || hasUR){ d = freezeBurstFX(); }
   else if(hasSSR){ flashShake(); d = 260; }
-
   setTimeout(()=>{
     inProgress = false; phase = "idle"; lastResults = queue.slice();
     showAllResults(queue); btnSkipAll.style.display = "none"; focusResult();
@@ -495,25 +463,15 @@ btnSkipAll.addEventListener("click", (e)=>{
 });
 
 /* ---- 実行ボタン ---- */
-function runTen(){
-  if(inProgress) return;
-  clearResultsView();
-  queue = drawN(10);
-  pointer = 0; inProgress = true; showNextCard();
-}
-function runSingle(){
-  if(inProgress) return;
-  clearResultsView();
-  queue = drawN(1);
-  pointer = 0; inProgress = true; showNextCard();
-}
+function runTen(){ if(inProgress) return; clearResultsView(); queue = drawN(10); pointer = 0; inProgress = true; showNextCard(); }
+function runSingle(){ if(inProgress) return; clearResultsView(); queue = drawN(1); pointer = 0; inProgress = true; showNextCard(); }
 
 /* ---- 最終結果カード ---- */
 const grid = document.getElementById("grid");
 const badge = document.getElementById("badge");
 const headline = document.getElementById("headline");
 
-/* ★ UR/EXカード常時キラ粒：管理 */
+/* キラ粒管理 */
 const activeSparkles = [];
 function stopAllItemSparkles(){
   while(activeSparkles.length){
@@ -527,25 +485,14 @@ function startItemSparkles(canvas){
   const ro = new ResizeObserver(()=>{ canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; });
   ro.observe(canvas);
   canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
-
   const PALETTE = ["#00e3ae","#ffd870","#00d4ff","#ffffff","#ff4d6d"];
   const MAX = 90;
   const parts = [];
-
   function spawn(k=3){
     for(let i=0;i<k;i++){
-      parts.push({
-        x: Math.random()*canvas.width,
-        y: Math.random()*canvas.height,
-        vx: (Math.random()-0.5)*0.25,
-        vy: -0.15 - Math.random()*0.35,
-        life: 60 + Math.random()*60,
-        size: 0.8 + Math.random()*1.8,
-        color: PALETTE[Math.floor(Math.random()*PALETTE.length)]
-      });
+      parts.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx: (Math.random()-0.5)*0.25, vy: -0.15 - Math.random()*0.35, life: 60 + Math.random()*60, size: 0.8 + Math.random()*1.8, color: PALETTE[Math.floor(Math.random()*PALETTE.length)] });
     }
   }
-
   function tick(){
     if(!running) return;
     if(parts.length < MAX) spawn(2 + Math.floor(Math.random()*3));
@@ -563,43 +510,23 @@ function startItemSparkles(canvas){
     requestAnimationFrame(tick);
   }
   tick();
-
-  return function stop(){
-    running = false;
-    ro.disconnect();
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-  };
+  return function stop(){ running=false; ro.disconnect(); ctx.clearRect(0,0,canvas.width,canvas.height); };
 }
 
-/* ★ 名前が溢れたカードにだけ“無限マルキー”を付与 */
+/* 名前長いときにマルキー */
 function applyMarqueeIfOverflow(el){
   const nameEl = el.querySelector('.name');
-  if(!nameEl) return;
-  if(nameEl.classList.contains('marquee')) return;
+  if(!nameEl || nameEl.classList.contains('marquee')) return;
   const raw = nameEl.textContent;
-
-  nameEl.style.whiteSpace = 'nowrap';
-  nameEl.style.overflow = 'hidden';
-  nameEl.style.textOverflow = 'clip';
-
+  nameEl.style.whiteSpace = 'nowrap'; nameEl.style.overflow = 'hidden'; nameEl.style.textOverflow = 'clip';
   const need = nameEl.scrollWidth > nameEl.clientWidth + 2;
   if(!need) return;
-
   nameEl.classList.add('marquee');
-  nameEl.innerHTML = `
-    <span class="track" aria-hidden="true">
-      <span class="scroll">${raw}</span>
-      <span class="scroll"> ${raw}</span>
-    </span>
-  `;
+  nameEl.innerHTML = `<span class="track" aria-hidden="true"><span class="scroll">${raw}</span><span class="scroll"> ${raw}</span></span>`;
 }
 
-function highestItem(items){
-  return items.reduce((m,x)=> rankIdx(x.rarity) > rankIdx(m.rarity) ? x : m, items[0]);
-}
-function countByRarity(items){
-  const c={R:0,SR:0,SSR:0,UR:0,EX:0}; for(const it of items) c[it.rarity]++; return c;
-}
+function highestItem(items){ return items.reduce((m,x)=> rankIdx(x.rarity) > rankIdx(m.rarity) ? x : m, items[0]); }
+function countByRarity(items){ const c={R:0,SR:0,SSR:0,UR:0,EX:0}; for(const it of items) c[it.rarity]++; return c; }
 
 function showAllResults(items){
   stopAllItemSparkles();
@@ -607,37 +534,28 @@ function showAllResults(items){
   for(const it of items){
     const el = document.createElement("div");
     el.className = `item ${it.rarity}`;
-    el.innerHTML = `
-      <div class="icon">${it.icon||"🎴"}</div>
-      <div class="name">[${it.rarity}] ${it.name}</div>
-      <div class="rarityBar"></div>`;
+    el.innerHTML = `<div class="icon">${it.icon||"🎴"}</div><div class="name">[${it.rarity}] ${it.name}</div><div class="rarityBar"></div>`;
     grid.appendChild(el);
-
     applyMarqueeIfOverflow(el);
-
-    // UR/EXなら常時キラ粒
     if(it.rarity === "UR" || it.rarity === "EX"){
       const cv = document.createElement("canvas");
       cv.className = "sparkle";
       el.appendChild(cv);
-      requestAnimationFrame(()=>{
-        const stop = startItemSparkles(cv);
-        activeSparkles.push(stop);
-      });
+      requestAnimationFrame(()=>{ const stop = startItemSparkles(cv); activeSparkles.push(stop); });
     }
   }
   badge.textContent = `${items.length} 回`;
   const top = highestItem(items);
   const counts = countByRarity(items);
-
   const rc = document.getElementById("resultCard");
   if(counts.EX > 0) rc.classList.add("exMode"); else rc.classList.remove("exMode");
+  headline.textContent = `${now()}｜最高:${top.rarity}「${top.name}」｜EX:${counts.EX} / UR:${counts.UR} / SSR:${counts.SSR} / SR:${counts.SR} / R:${counts.R}`;
 
-  headline.textContent =
-    `${now()}｜最高:${top.rarity}「${top.name}」｜EX:${counts.EX} / UR:${counts.UR} / SSR:${counts.SSR} / SR:${counts.SR} / R:${counts.R}`;
+  /* ▼ローカル保存（アルバム用） */
+  recordResults(items);
 }
 
-/* ---- 保存/Tweet ---- */
+/* ---- 結果保存/Tweet/アルバムスクショ ---- */
 document.getElementById("btnSave").addEventListener("click", async ()=>{
   const target = document.getElementById("resultCard");
   const canvas = await html2canvas(target,{scale:2,backgroundColor:"#0b0f1b"});
@@ -666,8 +584,12 @@ document.getElementById("btnReset").addEventListener("click", ()=>{
   stageHost.innerHTML = ""; hint.textContent = "";
   clearResultsView(); btnSkipAll.style.display = "none";
 });
+document.getElementById("btnAlbum").addEventListener("click", ()=>{
+  renderAlbum(document.getElementById("albumFilter").value);
+  albumModal.classList.add("show");
+});
 
-/* ---- 排出確率モーダル ---- */
+/* ---- 排出確率モーダル（EXは？？？？？表示） ---- */
 const modal = document.getElementById("modal");
 document.getElementById("btnRates").addEventListener("click", ()=>{
   const rb = document.getElementById("rateBody"); rb.innerHTML = "";
@@ -678,14 +600,97 @@ document.getElementById("btnRates").addEventListener("click", ()=>{
   }
   const lb = document.getElementById("listBody"); lb.innerHTML = "";
   for(const it of POOL){
+    const displayName = (it.rarity === "EX") ? "？？？？？" : it.name;
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td style="color:${RARITY[it.rarity].color}">${it.rarity}</td><td>${it.name}</td>`;
+    tr.innerHTML = `<td style="color:${RARITY[it.rarity].color}">${it.rarity}</td><td>${displayName}</td>`;
     lb.appendChild(tr);
   }
   modal.classList.add("show");
 });
 document.getElementById("closeModal").addEventListener("click", ()=> modal.classList.remove("show"));
 modal.addEventListener("click", (e)=>{ if(e.target===modal) modal.classList.remove("show"); });
+
+/* ======== ここから：アルバム保存＆UI ======== */
+const STORE_KEY = "oishi_gacha_progress_v1";
+function defaultState(){ return { pulls:0, sessions:0, firstPlayedAt:null, lastPlayedAt:null, items:{} }; }
+function loadState(){
+  try{ const raw = localStorage.getItem(STORE_KEY); if(!raw) return defaultState();
+       const st = JSON.parse(raw); return Object.assign(defaultState(), st, {items:Object.assign({}, st.items||{})}); }
+  catch(e){ return defaultState(); }
+}
+function saveState(st){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(st)); }catch(e){} }
+function recordResults(items){
+  const st = loadState();
+  const nowIso = new Date().toISOString();
+  if(!st.firstPlayedAt) st.firstPlayedAt = nowIso;
+  st.lastPlayedAt = nowIso;
+  st.sessions += 1;
+  st.pulls += items.length;
+  for(const it of items){
+    const key = it.name;
+    if(!st.items[key]) st.items[key] = { name: it.name, rarity: it.rarity, count:0, firstAt:null, lastAt:null };
+    st.items[key].count += 1;
+    if(!st.items[key].firstAt) st.items[key].firstAt = nowIso;
+    st.items[key].lastAt = nowIso;
+  }
+  saveState(st);
+}
+function collectionStats(){
+  const st = loadState();
+  const totalByR = {R:0,SR:0,SSR:0,UR:0,EX:0};
+  const haveByR  = {R:0,SR:0,SSR:0,UR:0,EX:0};
+  for(const p of POOL){
+    totalByR[p.rarity]++;
+    if(st.items[p.name]?.count>0){ haveByR[p.rarity]++; }
+  }
+  const totalKinds = POOL.length;
+  const haveKinds  = Object.values(haveByR).reduce((a,b)=>a+b,0);
+  const rate = (haveKinds/totalKinds*100).toFixed(1);
+  return { st, totalByR, haveByR, totalKinds, haveKinds, rate };
+}
+function renderAlbum(filter="ALL"){
+  const { st, totalKinds, haveKinds, rate } = collectionStats();
+  const statsEl = document.getElementById("albumStats");
+  statsEl.textContent = `総カード種 ${haveKinds}/${totalKinds}（${rate}%）｜総枚数 ${st.pulls}｜プレイ回数 ${st.sessions}`;
+
+  const grid = document.getElementById("albumGrid");
+  grid.innerHTML = "";
+  const list = POOL.filter(p => filter==="ALL" ? true : p.rarity===filter);
+
+  for(const p of list){
+    const owned = !!st.items[p.name]?.count;
+    const ct = st.items[p.name]?.count || 0;
+    const title = (p.rarity==="EX" && !owned) ? "？？？？？" : p.name; // 未所持EXは伏せる
+    const el = document.createElement("div");
+    el.className = `item ${p.rarity}`;
+    el.style.opacity = owned ? 1 : 0.55;
+    el.innerHTML = `
+      <div class="icon">${p.icon || "🎴"}</div>
+      <div class="name">[${p.rarity}] ${title}</div>
+      <div class="rarityBar"></div>
+      <div style="font-size:11px;color:#9fb1c8;margin-top:6px;">${owned ? `所持枚数：${ct}` : `未所持`}</div>
+    `;
+    grid.appendChild(el);
+  }
+}
+/* アルバムUIとスクショ */
+const albumModal = document.getElementById("albumModal");
+document.getElementById("closeAlbum").addEventListener("click", ()=> albumModal.classList.remove("show"));
+albumModal.addEventListener("click", (e)=>{ if(e.target===albumModal) albumModal.classList.remove("show"); });
+document.getElementById("albumFilter").addEventListener("change", (e)=>{ renderAlbum(e.target.value); });
+document.getElementById("btnResetAlbum").addEventListener("click", ()=>{
+  if(confirm("端末内のコレクション進捗をリセットします。よろしいですか？")){
+    localStorage.removeItem(STORE_KEY);
+    renderAlbum(document.getElementById("albumFilter").value);
+  }
+});
+document.getElementById("btnAlbumShot").addEventListener("click", async ()=>{
+  const target = document.getElementById("albumSheet"); // モーダルの中身を撮る
+  const canvas = await html2canvas(target,{scale:2,backgroundColor:"#0f1424"});
+  const a = document.createElement("a");
+  a.download = `oishi_album_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.png`;
+  a.href = canvas.toDataURL("image/png"); a.click();
+});
 </script>
 </body>
 </html>
