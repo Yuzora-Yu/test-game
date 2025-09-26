@@ -42,7 +42,7 @@
   #stage .hint{ position:absolute; bottom:10px; left:0; right:0; text-align:center; color:#c7d2e4; opacity:.8; font-size:12px; }
   #btnSkipAll{ position:absolute; top:10px; right:10px; z-index:5; display:none; font-size:12px; }
 
-  /* 追加：UR用のド派手演出パーツ */
+  /* 追加：UR用のド派手演出パーツ（単発/タップ時・すべてめくる時の一斉演出） */
   .beam{ position:absolute; inset:-20% 35% -40% 35%; opacity:0; pointer-events:none;
          background: linear-gradient(180deg, rgba(255,255,255,.0) 0%, rgba(255,255,255,.85) 40%, rgba(255,255,255,.0) 100%),
                      repeating-linear-gradient( to bottom,
@@ -106,6 +106,11 @@
   .SR .rarityBar{ background: linear-gradient(90deg,#a18cd1,#fbc2eb); }
   .SSR .rarityBar{ background: linear-gradient(90deg,#ffd76f,#ff8a00); box-shadow:0 0 16px rgba(255,200,64,.6); }
   .UR .rarityBar{ background: linear-gradient(90deg,#9be15d,#00e3ae); box-shadow:0 0 18px rgba(0,227,174,.7); }
+
+  /* ▼URカード用：常時キラ粒Canvas */
+  .sparkle {
+    position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.95;
+  }
 
   /* 枠外の操作エリア */
   .postActions{ width:var(--w); margin:10px auto 0; }
@@ -188,7 +193,7 @@
 </div>
 
 <script>
-/* ---------------- ラインナップ＆確率（最新版） ---------------- */
+/* ---- ラインナップ＆確率（あなた版） ---- */
 const RARITY = {
   "R":   { rate: 0.52, color:"#56ccf2", name:"R" },
   "SR":  { rate: 0.35, color:"#c1a8ff", name:"SR" },
@@ -220,7 +225,7 @@ const POOL = [
   { name:"義務わらのマサヨシ", rarity:"UR", icon:"👑" },
 ];
 
-/* -------------- 便利関数 -------------- */
+/* ---- 汎用 ---- */
 const sum = a => a.reduce((x,y)=>x+y,0);
 const pickWeighted = (arr, key="weight")=>{
   const total = sum(arr.map(e=>e[key]??1)); let r=Math.random()*total;
@@ -231,7 +236,7 @@ const now = ()=> new Date().toLocaleString("ja-JP");
 const rankOrder = ["R","SR","SSR","UR"];
 const rankIdx = r => rankOrder.indexOf(r);
 
-/* -------------- 抽選 -------------- */
+/* ---- 抽選 ---- */
 function drawOne(){
   const rEntry = pickWeighted(Object.entries(RARITY).map(([k,v])=>({key:k, weight:v.rate})), "weight");
   const rarity = rEntry.key;
@@ -240,7 +245,7 @@ function drawOne(){
 }
 function drawN(n){ return Array.from({length:n}, drawOne); }
 
-/* -------------- ステージ（1枚ずつ） -------------- */
+/* ---- ステージ（1枚ずつ） ---- */
 const stage = document.getElementById("stage");
 const stageHost = document.getElementById("stageHost");
 const hint = document.getElementById("hint");
@@ -254,22 +259,23 @@ const spctx = spark.getContext("2d");
 function resizeSpark(){ spark.width = spark.clientWidth; spark.height = spark.clientHeight; }
 addEventListener("resize", resizeSpark); resizeSpark();
 
-let queue = [];       // 今回の結果（10連/単発）
-let pointer = 0;      // 現在のインデックス
-let phase = "idle";   // idle | closed | opened
-let lockTap = false;  // アニメ中の多重タップ防止
+let queue = [];
+let pointer = 0;
+let phase = "idle";
+let lockTap = false;
 let inProgress = false;
 let currentItem = null;
 let currentCard = null;
-let lastResults = []; // 直近の完走結果（Tweet/保存用）
+let lastResults = [];
 
-/* --- 結果エリアへフォーカス移動 --- */
+/* ---- 結果エリアへフォーカス ---- */
 function focusResult(){
   const rc = document.getElementById("resultCard");
   rc.scrollIntoView({behavior:"smooth", block:"start"});
   setTimeout(()=> rc.focus({preventScroll:true}), 300);
 }
 
+/* ---- カード ---- */
 function createCard(item){
   const card = document.createElement("div");
   card.className = "card";
@@ -285,14 +291,14 @@ function createCard(item){
   return card;
 }
 
-/* --- 特殊演出（SSR/UR） --- */
+/* ---- ステージ演出（UR/SSR） ---- */
 function flashShake(){
   flash.classList.add("show");
   shakeHost.classList.add("shake");
   setTimeout(()=>flash.classList.remove("show"), 220);
   setTimeout(()=>shakeHost.classList.remove("shake"), 620);
 }
-function urMegaFX(){ // UR専用：ビーム＋レイ＋星粒
+function urMegaFX(){
   beam.classList.add("show");
   rays.classList.add("show");
   const N = 180;
@@ -328,17 +334,19 @@ function playSpecialBeforeReveal(rarity){
   return 0;
 }
 
-/* --- 進行制御 --- */
+/* ---- 進行制御 ---- */
 function clearResultsView(){
+  stopAllItemSparkles(); // ★ UR常時キラを停止
   grid.innerHTML = ""; badge.textContent = "0 回"; headline.textContent = "結果がここに表示されます";
 }
+
 function showNextCard(){
   if(pointer >= queue.length){
     inProgress = false; phase = "idle";
     lastResults = queue.slice();
     showAllResults(queue);
     hint.textContent = ""; btnSkipAll.style.display = "none";
-    focusResult(); // ★ 完走したら結果へスクロール
+    focusResult();
     return;
   }
   stageHost.innerHTML = "";
@@ -363,7 +371,6 @@ stage.addEventListener("click", ()=>{
         currentCard.querySelector(".front").classList.add("glowPulse");
       }
       phase = "opened";
-      // 単発はここで即フィニッシュ（結果一覧へ）
       if(queue.length === 1){
         setTimeout(()=>{ pointer = 1; showNextCard(); }, 450);
       }else{
@@ -376,11 +383,18 @@ stage.addEventListener("click", ()=>{
   }
 });
 
-/* --- すべてめくる：高レアがあれば演出→一覧＆スクロール --- */
+/* ---- すべてめくる：高レアがあれば演出→一覧＋フォーカス ---- */
 btnSkipAll.addEventListener("click", (e)=>{
   e.stopPropagation();
   if(!inProgress) return;
-  const hasUR = queue.some(x=>x.rarity==="UR");
+
+  // ▼ここでステージ中央のカードとヒントを即消し
+  stageHost.innerHTML = "";
+  currentCard = null;
+  hint.textContent = "";
+
+  // 高レアの有無で演出（UR優先）
+  const hasUR  = queue.some(x=>x.rarity==="UR");
   const hasSSR = !hasUR && queue.some(x=>x.rarity==="SSR");
   let d = 0;
   if(hasUR){ flashShake(); urMegaFX(); d = 460; }
@@ -388,29 +402,88 @@ btnSkipAll.addEventListener("click", (e)=>{
 
   setTimeout(()=>{
     inProgress = false; phase = "idle"; lastResults = queue.slice();
-    showAllResults(queue); hint.textContent = ""; btnSkipAll.style.display = "none";
-    focusResult(); // ★ 結果へ移動
+    showAllResults(queue);
+    btnSkipAll.style.display = "none";
+    focusResult();
   }, d);
 });
 
-/* --- 実行ボタン --- */
+/* ---- 実行ボタン ---- */
 function runTen(){
   if(inProgress) return;
-  clearResultsView();                 // 新規開始時に下をクリア
+  clearResultsView();
   queue = drawN(10);
   pointer = 0; inProgress = true; showNextCard();
 }
 function runSingle(){
   if(inProgress) return;
-  clearResultsView();                 // 新規開始時に下をクリア
+  clearResultsView();
   queue = drawN(1);
   pointer = 0; inProgress = true; showNextCard();
 }
 
-/* -------------- 最終結果カード -------------- */
+/* ---- 最終結果カード ---- */
 const grid = document.getElementById("grid");
 const badge = document.getElementById("badge");
 const headline = document.getElementById("headline");
+
+/* ★ URカード常時キラ粒：管理 */
+const activeSparkles = [];
+function stopAllItemSparkles(){
+  while(activeSparkles.length){
+    const stop = activeSparkles.pop();
+    try{ stop && stop(); }catch(e){}
+  }
+}
+function startItemSparkles(canvas){
+  const ctx = canvas.getContext("2d");
+  let running = true;
+  const ro = new ResizeObserver(()=>{ canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; });
+  ro.observe(canvas);
+  canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
+
+  const PALETTE = ["#00e3ae","#ffd870","#00d4ff","#ffffff"];
+  const MAX = 90;
+  const parts = [];
+
+  function spawn(k=3){
+    for(let i=0;i<k;i++){
+      parts.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        vx: (Math.random()-0.5)*0.25,
+        vy: -0.15 - Math.random()*0.35,
+        life: 60 + Math.random()*60,
+        size: 0.8 + Math.random()*1.8,
+        color: PALETTE[Math.floor(Math.random()*PALETTE.length)]
+      });
+    }
+  }
+
+  function tick(){
+    if(!running) return;
+    if(parts.length < MAX) spawn(2 + Math.floor(Math.random()*3));
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let i=parts.length-1;i>=0;i--){
+      const p = parts[i];
+      p.x+=p.vx; p.y+=p.vy; p.life--;
+      if(p.x<0) p.x+=canvas.width; if(p.x>canvas.width) p.x-=canvas.width;
+      if(p.y<0) p.y+=canvas.height;
+      if(p.life<=0){ parts.splice(i,1); continue; }
+      ctx.globalAlpha = Math.max(p.life/90,0.9)*0.9;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  return function stop(){
+    running = false;
+    ro.disconnect();
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+  };
+}
 
 function highestItem(items){
   return items.reduce((m,x)=> rankIdx(x.rarity) > rankIdx(m.rarity) ? x : m, items[0]);
@@ -419,6 +492,7 @@ function countByRarity(items){
   const c={R:0,SR:0,SSR:0,UR:0}; for(const it of items) c[it.rarity]++; return c;
 }
 function showAllResults(items){
+  stopAllItemSparkles();        // 既存のキラ粒停止
   grid.innerHTML = "";
   for(const it of items){
     const el = document.createElement("div");
@@ -427,6 +501,17 @@ function showAllResults(items){
       <div class="icon">${it.icon||"🎴"}</div>
       <div class="name">[${it.rarity}] ${it.name}</div>
       <div class="rarityBar"></div>`;
+    // ★ URなら常時キラ粒Canvasを追加
+    if(it.rarity === "UR"){
+      const cv = document.createElement("canvas");
+      cv.className = "sparkle";
+      el.appendChild(cv);
+      // レイアウト反映後に開始（次フレームでサイズ確定）
+      requestAnimationFrame(()=>{
+        const stop = startItemSparkles(cv);
+        activeSparkles.push(stop);
+      });
+    }
     grid.appendChild(el);
   }
   badge.textContent = `${items.length} 回`;
@@ -435,7 +520,7 @@ function showAllResults(items){
   headline.textContent = `${now()}｜最高:${top.rarity}「${top.name}」｜UR:${counts.UR} / SSR:${counts.SSR} / SR:${counts.SR} / R:${counts.R}`;
 }
 
-/* -------------- 保存/Tweet -------------- */
+/* ---- 保存/Tweet ---- */
 document.getElementById("btnSave").addEventListener("click", async ()=>{
   const target = document.getElementById("resultCard");
   const canvas = await html2canvas(target,{scale:2,backgroundColor:"#0b0f1b"});
@@ -456,7 +541,7 @@ document.getElementById("btnTweet").addEventListener("click", ()=>{
   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,"_blank");
 });
 
-/* -------------- 上部ボタン -------------- */
+/* ---- 上部ボタン ---- */
 document.getElementById("btnTen").addEventListener("click", runTen);
 document.getElementById("btnSingle").addEventListener("click", runSingle);
 document.getElementById("btnReset").addEventListener("click", ()=>{
@@ -465,7 +550,7 @@ document.getElementById("btnReset").addEventListener("click", ()=>{
   clearResultsView(); btnSkipAll.style.display = "none";
 });
 
-/* -------------- 排出確率モーダル -------------- */
+/* ---- 排出確率モーダル ---- */
 const modal = document.getElementById("modal");
 document.getElementById("btnRates").addEventListener("click", ()=>{
   const rb = document.getElementById("rateBody"); rb.innerHTML = "";
