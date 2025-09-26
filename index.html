@@ -40,6 +40,10 @@
     display:grid; place-items:center;
   }
   #stage .hint{ position:absolute; bottom:10px; left:0; right:0; text-align:center; color:#c7d2e4; opacity:.8; font-size:12px; }
+  /* 10連用：すべてめくるボタン（ステージ右上／枠内） */
+  #btnSkipAll{
+    position:absolute; top:10px; right:10px; z-index:5; display:none; font-size:12px;
+  }
 
   /* カード（3Dめくり） */
   .card{ width:min(280px,70vw); height:min(180px,45vw); perspective: 1000px; }
@@ -84,7 +88,10 @@
   .SSR .rarityBar{ background: linear-gradient(90deg,#ffd76f,#ff8a00); box-shadow:0 0 16px rgba(255,200,64,.6); }
   .UR .rarityBar{ background: linear-gradient(90deg,#9be15d,#00e3ae); box-shadow:0 0 18px rgba(0,227,174,.7); }
 
-  .rightbar{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  /* ▼枠外の操作エリア（保存/Tweet/注意書き） */
+  .postActions{ width:var(--w); margin:10px auto 0; }
+  .postActions .toolbar{ margin-top:10px; }
+  .note{ color:#9fb1c8; font-size:12px; margin:6px 0 0; }
 
   /* モーダル（排出確率） */
   .modal{ position:fixed; inset:0; display:none; place-items:center; background: rgba(0,0,0,.55); z-index:10; }
@@ -114,6 +121,7 @@
 <main style="width:var(--w); margin:auto;">
   <div id="stage" aria-label="演出ステージ">
     <div id="stageHost"></div>
+    <button id="btnSkipAll" class="btn">すべてめくる</button>
     <div class="flash" id="flash"></div>
     <div class="hint" id="hint"></div>
   </div>
@@ -125,17 +133,17 @@
       <div id="headline">結果がここに表示されます</div>
     </div>
     <div class="grid" id="grid"></div>
-    <div class="rightbar">
+  </section>
+
+  <!-- ▼枠外のボタン群（画像保存・Tweet・注意書き） -->
+  <div class="postActions">
+    <div class="toolbar">
       <button class="btn" id="btnSave">結果を画像保存</button>
       <button class="btn" id="btnTweet">Tweet（結果を共有）</button>
     </div>
-    <p style="color:#9fb1c8;font-size:12px;margin:6px 0 0;">※画像は自動添付できないため、保存後にツイート画面で添付してください。</p>
-  </section>
+    <p class="note">※画像は自動添付できないため、保存後にツイート画面で添付してください。</p>
+  </div>
 </main>
-
-<footer style="width:var(--w); margin:20px auto; color:#9fb1c8; font-size:12px;">
-  <p>デモ用途。画像は使わず絵文字表示にしています（差し替え可）。</p>
-</footer>
 
 <!-- 排出確率モーダル -->
 <div class="modal" id="modal">
@@ -158,10 +166,10 @@
 <script>
 /* ---------------- ラインナップ＆確率 ---------------- */
 const RARITY = {
-  "R":   { rate: 0.45, color:"#56ccf2", name:"R" },
+  "R":   { rate: 0.52, color:"#56ccf2", name:"R" },
   "SR":  { rate: 0.35, color:"#c1a8ff", name:"SR" },
-  "SSR": { rate: 0.15, color:"#ffd870", name:"SSR" },
-  "UR":  { rate: 0.05, color:"#00e3ae", name:"UR" }
+  "SSR": { rate: 0.10, color:"#ffd870", name:"SSR" },
+  "UR":  { rate: 0.03, color:"#00e3ae", name:"UR" }
 };
 const POOL = [
   { name:"メガネ", rarity:"R",   icon:"👓" },
@@ -211,10 +219,12 @@ function drawOne(){
 function drawN(n){ return Array.from({length:n}, drawOne); }
 
 /* -------------- ステージ（1枚ずつ） -------------- */
+const stage = document.getElementById("stage");
 const stageHost = document.getElementById("stageHost");
 const hint = document.getElementById("hint");
 const flash = document.getElementById("flash");
 const shakeHost = document.getElementById("shakeHost");
+const btnSkipAll = document.getElementById("btnSkipAll");
 
 let queue = [];       // 今回の結果（10連/単発）
 let pointer = 0;      // 現在のインデックス
@@ -259,6 +269,7 @@ function showNextCard(){
     lastResults = queue.slice();
     showAllResults(queue);
     hint.textContent = "";
+    btnSkipAll.style.display = "none";
     return;
   }
   stageHost.innerHTML = "";
@@ -267,9 +278,11 @@ function showNextCard(){
   stageHost.appendChild(currentCard);
   hint.textContent = "タップでめくる";
   phase = "closed";
+  // 10連中のみ表示
+  btnSkipAll.style.display = (queue.length>1) ? "inline-block" : "none";
 }
 
-document.getElementById("stage").addEventListener("click", ()=>{
+stage.addEventListener("click", ()=>{
   if(!inProgress || !currentCard) return;
   if(lockTap) return;
 
@@ -291,6 +304,18 @@ document.getElementById("stage").addEventListener("click", ()=>{
     pointer++;
     showNextCard();
   }
+});
+
+btnSkipAll.addEventListener("click", (e)=>{
+  e.stopPropagation(); // ステージのタップ伝播を防止
+  if(!inProgress) return;
+  // 残り全てスキップして一覧へ
+  inProgress = false;
+  phase = "idle";
+  lastResults = queue.slice();
+  showAllResults(queue);
+  hint.textContent = "";
+  btnSkipAll.style.display = "none";
 });
 
 function runTen(){
@@ -358,13 +383,14 @@ document.getElementById("btnTweet").addEventListener("click", ()=>{
   window.open(intent,"_blank");
 });
 
-/* -------------- ボタン -------------- */
+/* -------------- 上部ボタン -------------- */
 document.getElementById("btnTen").addEventListener("click", runTen);
 document.getElementById("btnSingle").addEventListener("click", runSingle);
 document.getElementById("btnReset").addEventListener("click", ()=>{
   inProgress = false; queue = []; pointer = 0; phase = "idle"; lockTap = false;
   stageHost.innerHTML = ""; hint.textContent = "";
   grid.innerHTML = ""; badge.textContent = "0 回"; headline.textContent = "結果がここに表示されます";
+  btnSkipAll.style.display = "none";
 });
 
 /* -------------- 排出確率モーダル -------------- */
